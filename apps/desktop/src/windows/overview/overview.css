@@ -394,8 +394,11 @@
 .ov-tx {
   display: grid;
   grid-template-columns: 1fr auto;
+  align-content: center;
   gap: 0 var(--space-2);
-  padding: 2px var(--space-1);
+  height: var(--ov-row-h, 34px);
+  padding: 0 var(--space-1);
+  line-height: 1.25;
 }
 .ov-tx__merchant {
   min-width: 0;
@@ -432,10 +435,8 @@
   place-items: center;
   width: 32px;
   height: 32px;
-  border: 2px solid;
+  overflow: hidden;
   border-radius: var(--radius-md);
-  background: var(--surface-cream-light);
-  font-weight: var(--weight-bold);
 }
 .ov-goal__main {
   flex: 1;
@@ -483,4 +484,14 @@
   font-size: var(--text-lg);
   font-weight: var(--weight-bold);
   color: var(--text-strong);
+}
+
+.ov-recent__fit {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  --ov-row-h: 34px;
+}
+.ov-recent__list {
+  gap: 1px;
 }

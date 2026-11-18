@@ -3,12 +3,14 @@
  * balance, and add / edit / delete its transactions (amount, date,
  * description, category, note). The balance always comes from the
  * transactions (core derives it in each action), so it updates on save.
+ * Every change is shown before → after first (ui/ActionConfirm).
  */
 import { useState, type FormEvent } from "react";
 import { Flows, Money, toCents, type AccountKind } from "@ft/core";
-import { useActions, useQuery } from "../data/hooks.ts";
+import { useQuery } from "../data/hooks.ts";
 import { Button, IconButton, Input, SegmentedControl, Select } from "../ui/components.tsx";
-import { errorMessage } from "../connections/api.ts";
+import type { ActionStep } from "../ui/ActionConfirm.tsx";
+import { ConfirmActions } from "../dialogs/ConfirmActions.tsx";
 import { KIND_LABELS } from "./AccountEditor.tsx";
 
 const MANUAL_KINDS: AccountKind[] = ["cash", "checking", "savings", "other"];
@@ -27,30 +29,35 @@ export function parseDollars(text: string): number | null {
   return toCents(t);
 }
 
+interface Pending {
+  title: string;
+  steps: ActionStep[];
+  confirmLabel: string;
+  destructive?: boolean;
+  after: () => void;
+}
+
 export function ManualAccountForm({ onCreated, onCancel }: { onCreated: (name: string) => void; onCancel?: () => void }) {
-  const actions = useActions();
   const [name, setName] = useState("Cash");
   const [kind, setKind] = useState<AccountKind>("cash");
   const [balance, setBalance] = useState("0");
   const [date, setDate] = useState(todayIso());
   const [error, setError] = useState<string>();
-  const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState<Pending | null>(null);
 
-  const submit = async (e: FormEvent) => {
+  const submit = (e: FormEvent) => {
     e.preventDefault();
     const cents = parseDollars(balance);
     if (!name.trim()) return setError("Give the account a name.");
     if (cents === null) return setError("Enter the starting balance as a number, e.g. 40 or 40.00.");
-    setBusy(true);
     setError(undefined);
-    try {
-      await actions.run("accounts.addManualAccount", { name: name.trim(), kind, startingBalanceCents: cents, startingDate: date });
-      onCreated(name.trim());
-    } catch (err) {
-      setError(errorMessage(err, "Couldn't add the account."));
-    } finally {
-      setBusy(false);
-    }
+    const clean = name.trim();
+    setPending({
+      title: `Add ${clean}`,
+      steps: [{ name: "accounts.addManualAccount", input: { name: clean, kind, startingBalanceCents: cents, startingDate: date } }],
+      confirmLabel: "Add account",
+      after: () => onCreated(clean),
+    });
   };
 
   return (
@@ -79,11 +86,28 @@ export function ManualAccountForm({ onCreated, onCancel }: { onCreated: (name: s
             Cancel
           </Button>
         )}
-        <Button type="submit" variant="primary" icon="plus" disabled={busy}>
-          {busy ? "Adding…" : "Add manual account"}
+        <Button type="submit" variant="primary" icon="plus">
+          Add manual account
         </Button>
       </div>
+      {pending && <PendingConfirm pending={pending} onClose={() => setPending(null)} />}
     </form>
+  );
+}
+
+function PendingConfirm({ pending, onClose }: { pending: Pending; onClose: () => void }) {
+  return (
+    <ConfirmActions
+      title={pending.title}
+      steps={pending.steps}
+      confirmLabel={pending.confirmLabel}
+      destructive={pending.destructive}
+      onCancel={onClose}
+      onDone={() => {
+        onClose();
+        pending.after();
+      }}
+    />
   );
 }
 
@@ -100,7 +124,7 @@ interface Row {
   note: string | null;
 }
 
-interface Draft {
+export interface Draft {
   id: string | null;
   direction: "out" | "in";
   amount: string;
@@ -114,54 +138,54 @@ const emptyDraft = (): Draft => ({ id: null, direction: "out", amount: "", date:
 
 const OPENING_SUFFIX = "__opening";
 
+/** The registry actions that save a draft: a new transaction, or only what changed on an existing one. */
+export function manualTransactionSteps(accountId: string, draft: Draft, before?: Pick<Row, "amountCents" | "date" | "rawDescription" | "category" | "note">): ActionStep[] | string {
+  const abs = parseDollars(draft.amount);
+  if (abs === null || abs === 0) return "Enter an amount, e.g. 12.50.";
+  if (!draft.description.trim()) return "Add a short description.";
+  const amountCents = draft.direction === "out" ? -Math.abs(abs) : Math.abs(abs);
+  const category = draft.category || null;
+  const note = draft.note.trim() || null;
+  const description = draft.description.trim();
+  if (draft.id === null) {
+    return [{ name: "accounts.addManualTransaction", input: { accountId, amountCents, date: draft.date, description, category, note } }];
+  }
+  const steps: ActionStep[] = [];
+  const edit: Record<string, unknown> = {};
+  if (before?.amountCents !== amountCents) edit.amountCents = amountCents;
+  if (before?.date !== draft.date) edit.date = draft.date;
+  if (before?.rawDescription !== description) edit.description = description;
+  if (Object.keys(edit).length > 0) steps.push({ name: "accounts.editManualTransaction", input: { transactionId: draft.id, ...edit } });
+  if ((before?.category ?? null) !== category) steps.push({ name: "transactions.recategorise", input: { transactionId: draft.id, category, alwaysForMerchant: false } });
+  if ((before?.note ?? null) !== note) steps.push({ name: "transactions.setNote", input: { transactionId: draft.id, note } });
+  return steps.length > 0 ? steps : "Nothing changed.";
+}
+
 export function ManualTransactions({ accountId }: { accountId: string }) {
-  const actions = useActions();
   const list = useQuery<{ rows: Row[]; count: number }>("transactions.list", { accountIds: [accountId], measure: "amount", includePending: true, limit: 200 });
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState<string>();
-  const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState<Pending | null>(null);
   const rows = (list.data?.value.rows ?? []).filter((r) => !r.transactionId.endsWith(OPENING_SUFFIX));
 
-  const save = async (e: FormEvent) => {
+  const save = (e: FormEvent) => {
     e.preventDefault();
     if (!draft) return;
-    const abs = parseDollars(draft.amount);
-    if (abs === null || abs === 0) return setError("Enter an amount, e.g. 12.50.");
-    if (!draft.description.trim()) return setError("Add a short description.");
-    const amountCents = draft.direction === "out" ? -Math.abs(abs) : Math.abs(abs);
-    const category = draft.category || null;
-    const note = draft.note.trim() || null;
-    setBusy(true);
+    const before = draft.id ? rows.find((r) => r.transactionId === draft.id) : undefined;
+    const steps = manualTransactionSteps(accountId, draft, before);
+    if (typeof steps === "string") return setError(steps);
     setError(undefined);
-    try {
-      if (draft.id === null) {
-        await actions.run("accounts.addManualTransaction", { accountId, amountCents, date: draft.date, description: draft.description.trim(), category, note });
-      } else {
-        const before = rows.find((r) => r.transactionId === draft.id);
-        await actions.run("accounts.editManualTransaction", { transactionId: draft.id, amountCents, date: draft.date, description: draft.description.trim() });
-        if ((before?.category ?? null) !== category) await actions.run("transactions.recategorise", { transactionId: draft.id, category, alwaysForMerchant: false });
-        if ((before?.note ?? null) !== note) await actions.run("transactions.setNote", { transactionId: draft.id, note });
-      }
-      setDraft(null);
-    } catch (err) {
-      setError(errorMessage(err, "Couldn't save the transaction."));
-    } finally {
-      setBusy(false);
-    }
+    setPending({ title: draft.id ? "Save transaction" : "Add transaction", steps, confirmLabel: draft.id ? "Save" : "Add", after: () => setDraft(null) });
   };
 
-  const remove = async (id: string) => {
-    setBusy(true);
-    setError(undefined);
-    try {
-      await actions.run("accounts.deleteManualTransaction", { transactionId: id });
-      if (draft?.id === id) setDraft(null);
-    } catch (err) {
-      setError(errorMessage(err, "Couldn't delete the transaction."));
-    } finally {
-      setBusy(false);
-    }
-  };
+  const remove = (r: Row) =>
+    setPending({
+      title: `Delete “${r.rawDescription}”`,
+      steps: [{ name: "accounts.deleteManualTransaction", input: { transactionId: r.transactionId } }],
+      confirmLabel: "Delete",
+      destructive: true,
+      after: () => draft?.id === r.transactionId && setDraft(null),
+    });
 
   const edit = (r: Row) =>
     setDraft({
@@ -214,8 +238,8 @@ export function ManualTransactions({ accountId }: { accountId: string }) {
             <Button variant="ghost" onClick={() => setDraft(null)}>
               Cancel
             </Button>
-            <Button type="submit" variant="primary" disabled={busy}>
-              {busy ? "Saving…" : draft.id ? "Save changes" : "Add"}
+            <Button type="submit" variant="primary">
+              {draft.id ? "Save changes" : "Add"}
             </Button>
           </div>
         </form>
@@ -241,11 +265,12 @@ export function ManualTransactions({ accountId }: { accountId: string }) {
               </span>
               <span className="ft-tx-row__amount ft-num">{Money.format(r.amountCents, { showPlus: true })}</span>
               <IconButton icon="pencil" label={`Edit ${r.rawDescription}`} size="sm" onClick={() => edit(r)} />
-              <IconButton icon="trash" label={`Delete ${r.rawDescription}`} size="sm" onClick={() => void remove(r.transactionId)} disabled={busy} />
+              <IconButton icon="trash" label={`Delete ${r.rawDescription}`} size="sm" onClick={() => remove(r)} />
             </li>
           ))}
         </ul>
       )}
+      {pending && <PendingConfirm pending={pending} onClose={() => setPending(null)} />}
     </section>
   );
 }

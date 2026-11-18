@@ -69,6 +69,13 @@
   margin: 0 0 var(--space-2);
 }
 
+/* ActionConfirm covers its positioned ancestor: here, the whole screen above any sheet. */
+.ft-confirm-host {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-overlay) + 1);
+}
+
 /* ---------------------------------------------------------------- shared */
 .ft-stack {
   display: grid;

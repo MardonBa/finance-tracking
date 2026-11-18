@@ -5,14 +5,14 @@
  * window (or transactions) behind it. The alerts strip shows only when
  * something needs dealing with.
  */
-import { useEffect, useMemo, useRef, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { Money, addDays, addMonths, monthOf, monthStart } from "@ft/core";
 import { useQuery } from "../../data/hooks.ts";
 import { openDrillDown, openItem } from "../../data/drilldown.ts";
 import { useWindow } from "../../shell/context.ts";
 import { Icon } from "../../ui/Icon.tsx";
 import { StatusLabel, type Status } from "../../ui/components.tsx";
-import { foldOther, goalColorMap, OTHER_KEY } from "../../ui/colorMap.ts";
+import { foldOther, OTHER_KEY } from "../../ui/colorMap.ts";
 import { AddAccountMenu } from "../../accounts/AddAccountMenu.tsx";
 import { openAccountSheet } from "../../accounts/AccountSheets.tsx";
 import { RefreshButton } from "../../connections/RefreshButton.tsx";
@@ -21,7 +21,10 @@ import { isOutOfDate, relativeTime, useConnections } from "../../connections/use
 import type { ConnectionHealth } from "../../connections/api.ts";
 import { todayIso } from "../../accounts/manual.tsx";
 import { computeAlerts, type BelowZeroWarning, type OverviewAlert } from "./alerts.ts";
-import { GoalCelebrations, GoalPictureFromGoals, overviewCategoryColors } from "./adapters.tsx";
+import { overviewCategoryColors } from "./adapters.tsx";
+import { GoalCelebrations } from "../goals/GoalCelebrations.tsx";
+import { GoalPicture } from "../goals/GoalPicture.tsx";
+import { goalColor } from "../goals/goalColors.ts";
 import "../../dialogs/dialogs.css";
 import "./overview.css";
 
@@ -146,7 +149,7 @@ export function OverviewWindow() {
   // All in parallel; each card renders when its own data lands.
   const summary = useQuery<MonthlySummary>("spending.monthlySummary", { month, usualMonths: 3 });
   const byCat = useQuery<ByCategory>("spending.byCategory", { from: monthStart(month), to: today, level: "primary" });
-  const recent = useQuery<{ rows: TxRow[] }>("transactions.list", { measure: "amount", buckets: ["spending"], includePending: true, to: today, limit: 7 });
+  const recent = useQuery<{ rows: TxRow[] }>("transactions.list", { measure: "amount", buckets: ["spending"], includePending: true, to: today, limit: 10 });
   const budgets = useQuery<BudgetView[]>("budgets.overview", {});
   const goals = useQuery<{ goals: GoalCard[] }>("goals.list", {});
   const netWorth = useQuery<{ totalCents: number; date: string }>("balances.netWorth", {});
@@ -473,10 +476,31 @@ function AccountsCard({
   );
 }
 
+/** How many fixed-height rows fit in the element (the Overview never scrolls, §13). */
+function useFitCount(ref: RefObject<HTMLElement | null>, rowPx: number, min: number): number {
+  const [n, setN] = useState(min);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const measure = () => setN(Math.max(min, Math.floor(el.clientHeight / rowPx)));
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref, rowPx, min]);
+  return n;
+}
+
+export const RECENT_ROW_PX = 35;
+
 function RecentCard({ recent }: { recent: Q<{ rows: TxRow[] }> }) {
-  const rows = recent.data?.value.rows ?? [];
+  const listRef = useRef<HTMLDivElement>(null);
+  // At least 7 at the default size; more when the window is taller.
+  const fit = useFitCount(listRef, RECENT_ROW_PX, 7);
+  const rows = (recent.data?.value.rows ?? []).slice(0, fit);
   return (
     <Section title="Recent spending" className="ov-recent" onOpen={() => openItem({ area: "transactions" })} openLabel="Open Transactions" loading={!recent.data && !recent.error}>
+      <div ref={listRef} className="ov-recent__fit">
       {rows.length === 0 ? (
         <p className="ft-muted ft-small">No spending yet.</p>
       ) : (
@@ -500,6 +524,7 @@ function RecentCard({ recent }: { recent: Q<{ rows: TxRow[] }> }) {
           ))}
         </ul>
       )}
+      </div>
     </Section>
   );
 }
@@ -516,18 +541,8 @@ function goalStatus(g: GoalCard): { status: Status; text: string } {
   return { status: "on-track", text: g.projection?.label ?? "Saving" };
 }
 
-function GoalPicture({ goalId, name, color }: { goalId: string; name: string; color: string }) {
-  if (GoalPictureFromGoals) return <GoalPictureFromGoals goalId={goalId} name={name} size={32} color={color} />;
-  return (
-    <span className="ov-goal__pic" style={{ borderColor: color, color }} aria-hidden="true">
-      {name.trim().charAt(0).toUpperCase()}
-    </span>
-  );
-}
-
 function GoalsCard({ goals }: { goals: Q<{ goals: GoalCard[] }> }) {
   const list = goals.data?.value.goals ?? [];
-  const colors = goalColorMap([...list].sort((a, b) => a.colorSlot - b.colorSlot).map((g) => g.goalId));
   const shown = list.slice(0, 4);
   const open = (itemId?: string) => openItem({ area: "goals", itemId });
   return (
@@ -543,11 +558,13 @@ function GoalsCard({ goals }: { goals: Q<{ goals: GoalCard[] }> }) {
         <ul className="ov-goals__list">
           {shown.map((g) => {
             const s = goalStatus(g);
-            const color = colors.get(g.goalId);
+            const color = goalColor(g.colorSlot);
             return (
               <li key={g.goalId}>
                 <button type="button" className="ov-click ov-goal" onClick={() => open(g.goalId)} aria-label={`${g.name}: ${Math.round(g.percent)}% saved, ${s.text}. Open Goals`}>
-                  <GoalPicture goalId={g.goalId} name={g.name} color={color} />
+                  <span className="ov-goal__pic">
+                    <GoalPicture goalId={g.goalId} name={g.name} color={color} size={32} editable={false} />
+                  </span>
                   <span className="ov-goal__main">
                     <span className="ov-goal__name">{g.name}</span>
                     <span className="ov-goal__track">

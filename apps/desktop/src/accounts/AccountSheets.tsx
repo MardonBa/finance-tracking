@@ -6,8 +6,9 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { Money, type AccountKind } from "@ft/core";
-import { useActions, useQuery } from "../data/hooks.ts";
-import { ConfirmDialog, Dialog } from "../dialogs/Dialog.tsx";
+import { useQuery } from "../data/hooks.ts";
+import { Dialog } from "../dialogs/Dialog.tsx";
+import { ConfirmActions } from "../dialogs/ConfirmActions.tsx";
 import { Button } from "../ui/components.tsx";
 import { Icon } from "../ui/Icon.tsx";
 import { errorMessage, needsAttention } from "../connections/api.ts";
@@ -70,10 +71,7 @@ export function AccountSheets({ token }: { token: string }) {
 function AccountSheet({ token, accountId, onClose }: { token: string; accountId: string; onClose: () => void }) {
   const accounts = useQuery<{ accounts: AccountRow[] }>("accounts.list", { includeHidden: true });
   const connections = useConnections(token);
-  const actions = useActions();
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [error, setError] = useState<string>();
-  const [busy, setBusy] = useState(false);
   const account = accounts.data?.value.accounts.find((a) => a.id === accountId);
   const seen = useRef(false);
   if (account) seen.current = true;
@@ -91,20 +89,6 @@ function AccountSheet({ token, accountId, onClose }: { token: string; accountId:
     );
   }
   const conn = account.itemId ? connections.items?.find((c) => c.itemId === account.itemId) : undefined;
-
-  const remove = async () => {
-    setBusy(true);
-    try {
-      await actions.run("accounts.deleteManualAccount", { accountId: account.id });
-      setConfirmDelete(false);
-      onClose();
-    } catch (e) {
-      setError(errorMessage(e, "Couldn't delete the account."));
-      setConfirmDelete(false);
-    } finally {
-      setBusy(false);
-    }
-  };
 
   return (
     <>
@@ -138,11 +122,6 @@ function AccountSheet({ token, accountId, onClose }: { token: string; accountId:
             account={{ id: account.id, name: account.name, mask: account.mask, kind: account.kind, hidden: account.hidden, balanceCents: null, isManual: account.isManual }}
           />
           {account.isManual && <ManualTransactions accountId={account.id} />}
-          {error && (
-            <p className="ft-note ft-note--danger" role="alert">
-              {error}
-            </p>
-          )}
           {account.isManual && (
             <div className="ft-row ft-row--end">
               <Button variant="danger" size="sm" icon="trash" onClick={() => setConfirmDelete(true)}>
@@ -153,14 +132,16 @@ function AccountSheet({ token, accountId, onClose }: { token: string; accountId:
         </div>
       </Dialog>
       {confirmDelete && (
-        <ConfirmDialog
+        <ConfirmActions
           title={`Delete ${account.name}?`}
-          message={<p>This deletes the manual account and every transaction you entered in it, and removes it from net worth.</p>}
+          steps={[{ name: "accounts.deleteManualAccount", input: { accountId: account.id } }]}
           confirmLabel="Delete account"
-          danger
-          busy={busy}
-          onConfirm={() => void remove()}
+          destructive
           onCancel={() => setConfirmDelete(false)}
+          onDone={() => {
+            setConfirmDelete(false);
+            onClose();
+          }}
         />
       )}
     </>
