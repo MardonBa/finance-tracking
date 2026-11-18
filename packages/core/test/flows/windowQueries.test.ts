@@ -4,7 +4,7 @@
  * necessity labelling list.
  */
 import { describe, expect, it } from "vitest";
-import { queryRegistry } from "../../src/index.ts";
+import { actionRegistry, applyMutations, queryRegistry, type Mutation } from "../../src/index.ts";
 import { flowsFixture } from "../../fixtures/index.ts";
 
 function run(name: string, params: unknown) {
@@ -58,5 +58,30 @@ describe("spending.necessityLabels", () => {
     const q = queryRegistry.get("spending.necessityLabels")!;
     const { value } = q.run(data as never, q.params.parse({ from: "2026-10-01", to: "2026-10-31" }), today) as { value: any };
     for (const r of [...value.categories, ...value.merchants]) expect(r.necessity).toBeNull();
+  });
+});
+
+describe("transactions.setNote on a matched transfer keeps one note for the pair", () => {
+  it("writes the note on the money-out half and clears the other, both rows show it", () => {
+    const { today, data } = flowsFixture();
+    const q = queryRegistry.get("transactions.list")!;
+    type R = { transactionId: string; amountCents: number; transferCounterpartId: string | null; note: string | null };
+    const rows = (d: typeof data): R[] =>
+      (q.run(d as never, q.params.parse({ measure: "amount", includePending: true, limit: 1000, offset: 0 }), today) as { value: { rows: R[] } }).value.rows;
+    const inHalf = rows(data).find((r) => r.transferCounterpartId && r.amountCents > 0)!;
+    expect(inHalf).toBeDefined();
+    const a = actionRegistry.get("transactions.setNote")!;
+    let n = 0;
+    const ctx = { today, now: `${today}T12:00:00.000Z`, newId: () => `id_${++n}` };
+    // A stale note on the money-in half (from before pairs shared one) is cleared.
+    const first = applyMutations(data, [
+      { op: "upsert", table: "overrides", row: { transactionId: inHalf.transactionId, category: null, bucket: null, necessity: null, note: "old", confirmedAt: null, updatedAt: ctx.now } },
+    ] as Mutation[]);
+    const after = applyMutations(first, a.apply(first as never, a.input.parse({ transactionId: inHalf.transactionId, note: "Monthly savings" }), ctx));
+    const notes = after.overrides.filter((o) => [inHalf.transactionId, inHalf.transferCounterpartId].includes(o.transactionId) && o.note);
+    expect(notes).toHaveLength(1);
+    expect(notes[0]!.transactionId).toBe(inHalf.transferCounterpartId);
+    const both = rows(after).filter((r) => r.transactionId === inHalf.transactionId || r.transactionId === inHalf.transferCounterpartId);
+    expect(both.map((r) => r.note)).toEqual(["Monthly savings", "Monthly savings"]);
   });
 });
