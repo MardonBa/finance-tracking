@@ -127,6 +127,38 @@ describe("goal actions", () => {
     expect(() => run("goals.create", data, { name: "X", accountId: "acc_card", targetCents: 1 })).toThrow(ActionError);
   });
 
+  it("a new goal counts the milestones its existing money already covers as celebrated; only later progress celebrates", () => {
+    const { data, today } = rich();
+    const pending = (d: CoreData, id: string) => query("goals.celebrations", d, {}, today).value.pending.filter((p: { goalId: string }) => p.goalId === id);
+    // First priority on the HYSA: $500 of the $551 for goals goes to it straight away.
+    const first = run("goals.create", data, { name: "Car", accountId: "acc_hysa", targetCents: 50000, priority: 1 });
+    expect(first.after.goalMilestonesSeen.filter((m) => m.goalId === "new_1").map((m) => m.milestoneCents)).toEqual([12500, 25000, 37500, 50000]);
+    expect(pending(first.after, "new_1")).toEqual([]);
+    // Last priority, nothing left over: nothing is marked. Once Trip is full and $130 more reaches the new goal, its first milestone ($125) celebrates.
+    const last = run("goals.create", data, { name: "Car", accountId: "acc_hysa", targetCents: 50000 });
+    expect(last.after.goalMilestonesSeen).toEqual([]);
+    const richer = applyMutations(last.after, [{ op: "upsert", table: "accounts", row: { ...findRow(last.after, "accounts", { id: "acc_hysa" })!, currentBalanceCents: 1051234 + 118766 + 13000 } }]);
+    expect(pending(richer, "new_1").map((p: { cents: number }) => p.cents)).toEqual([12500]);
+    // Partly covered: only the reached milestones are marked.
+    const part = run("goals.create", { ...data, goals: data.goals.filter((g) => g.id !== "g_trip") }, { name: "Car", accountId: "acc_hysa", targetCents: 400000 });
+    // 551,234 − 120,000 − 250,000 = 181,234 for the new goal; step $300.
+    expect(part.after.goalMilestonesSeen.map((m) => m.milestoneCents)).toEqual([30000, 60000, 90000, 120000, 150000, 180000]);
+    expect(pending(part.after, "new_1")).toEqual([]);
+  });
+
+  it("changing a goal's target counts newly covered progress milestones as celebrated, but completion still celebrates", () => {
+    const { data, today } = rich();
+    const pending = (d: CoreData) => query("goals.celebrations", d, {}, today).value.pending.filter((p: { goalId: string }) => p.goalId === "g_trip");
+    const seen: CoreData = { ...data, goalMilestonesSeen: query("goals.celebrations", data, {}, today).value.pending.map((p: { goalId: string; cents: number }) => ({ goalId: p.goalId, milestoneCents: p.cents, seenAt: "" })) };
+    expect(pending(seen)).toEqual([]);
+    // Trip has $1,812.34 of $3,000. Lowering the target to $1,000 (steps of $250) covers new progress milestones and completes it.
+    const lower = run("goals.edit", seen, { goalId: "g_trip", targetCents: 100000 });
+    expect(lower.after.goalMilestonesSeen.filter((m) => m.goalId === "g_trip").map((m) => m.milestoneCents)).toEqual(expect.arrayContaining([25000, 50000, 75000]));
+    expect(pending(lower.after).map((p: { kind: string }) => p.kind)).toEqual(["completion"]);
+    // A name-only edit marks nothing.
+    expect(run("goals.edit", seen, { goalId: "g_trip", name: "Lisbon" }).muts.filter((m) => m.table === "goalMilestonesSeen")).toEqual([]);
+  });
+
   it("edit, delete, set deadline, set contribution, link purchase", () => {
     const { data } = rich();
     expect(findRow(run("goals.edit", data, { goalId: "g_mac", targetCents: 200000, name: "Laptop" }).after, "goals", { id: "g_mac" })).toMatchObject({ targetCents: 200000, name: "Laptop" });
