@@ -6,11 +6,11 @@
 import type { Cents } from "../money.ts";
 import { Money } from "../money.ts";
 import type { IsoDate } from "../dates.ts";
-import type { Bucket, Id, TransactionId } from "../types.ts";
+import type { Bucket, Id, Necessity, TransactionId } from "../types.ts";
 import type { Contribution, Figure } from "../registry.ts";
 import { accountLabel } from "./accounts.ts";
 import { categoryLabel } from "./categories.ts";
-import type { Ledger, LedgerEntry } from "./ledger.ts";
+import type { Ledger, LedgerEntry, NecessitySource } from "./ledger.ts";
 
 export interface RowPart {
   key: string;
@@ -59,6 +59,12 @@ export interface TransactionRow {
   parts: RowPart[];
   /** Refunds linked to this purchase. */
   refunds: RowRefund[];
+  /** Hand-applied tag ids (names via `transactions.filterOptions`). */
+  tagIds: Id[];
+  /** Necessary / not necessary, or null when nothing labels it ("not set"). */
+  necessity: Necessity | null;
+  /** Where the necessity comes from: this transaction, a rule, its merchant or its category. */
+  necessitySource: NecessitySource | null;
 }
 
 function accountName(ledger: Ledger, id: Id): string {
@@ -143,6 +149,9 @@ export function rowFor(ledger: Ledger, transactionId: TransactionId): Transactio
       const r = ledger.byTransaction.get(id)![0]!;
       return { transactionId: id, date: r.date, amountCents: ledger.transactions.get(id)!.amountCents, merchantName: r.merchantName };
     }),
+    tagIds: [...first.tagIds],
+    necessity: first.necessity,
+    necessitySource: first.necessitySource,
   };
   if (first.source) row.source = first.source;
   // A matched transfer carries one note for the pair: show the other half's if this one has none.

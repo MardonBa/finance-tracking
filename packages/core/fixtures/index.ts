@@ -16,3 +16,6 @@ export function basicFixture(): Fixture {
   const { today, data } = JSON.parse(JSON.stringify(basic)) as Fixture;
   return { today, data };
 }
+
+/** The core-flows fixture: four months of a typical life, "today" is 2026-10-20. */
+export { flowsFixture, type FlowsFixture } from "./flows.ts";
