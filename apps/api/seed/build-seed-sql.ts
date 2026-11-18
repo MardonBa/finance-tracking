@@ -5,7 +5,7 @@
  * environment (scripts/reset-dev.mjs passes them from .dev.vars / .env).
  */
 import { writeFileSync } from "node:fs";
-import { DATA_KEYS, isIsoDate, isoDateInTimeZone } from "@ft/core";
+import { Balances, DATA_KEYS, isIsoDate, isoDateInTimeZone } from "@ft/core";
 import { TABLES } from "../src/db/tables.ts";
 import { appCredentials, plaidItems } from "../src/db/schema.ts";
 import { encryptString } from "../src/crypto/aes.ts";
@@ -25,13 +25,41 @@ const env = (k: string) => {
 };
 
 const data = buildDevSeed(today);
+
+// The seed bank's history is "imported", so run the same daily snapshot upkeep the
+// backend runs after its cron (sync/balanceMaintenance.ts): estimated history for the
+// rebuildable accounts, manual balances from their transactions, weekly after 90 days.
+// The app then shows net worth history and "change since last month" straight away.
+const upkeep = Balances.planSnapshotMaintenance({
+  accounts: data.accounts,
+  transactions: data.transactions,
+  snapshots: data.balanceSnapshots,
+  today,
+  historyCompleteAccountIds: new Set(data.accounts.filter((a) => a.itemId !== null).map((a) => a.id)),
+});
+const removed = new Set(upkeep.deletes.map((k) => `${k.accountId}@${k.date}`));
+const byKey = new Map(data.balanceSnapshots.filter((s) => !removed.has(`${s.accountId}@${s.date}`)).map((s) => [`${s.accountId}@${s.date}`, s]));
+for (const s of upkeep.upserts) byKey.set(`${s.accountId}@${s.date}`, s);
+data.balanceSnapshots = [...byKey.values()];
+for (const b of upkeep.balances) {
+  const a = data.accounts.find((x) => x.id === b.accountId);
+  if (a) a.currentBalanceCents = b.currentBalanceCents;
+}
 const statements: string[] = [];
 
 // Items carry backend-only columns. The seed bank is not a real Plaid item, so
 // its "token" is a marker that sync code must skip (prefix "seed-").
 for (const item of data.items) {
   statements.push(
-    ...insertSql(plaidItems, [{ ...item, accessTokenEnc: await encryptString("seed-not-a-plaid-token", env("TOKEN_ENC_KEY")), transactionsCursor: null }]),
+    ...insertSql(plaidItems, [
+      {
+        ...item,
+        accessTokenEnc: await encryptString("seed-not-a-plaid-token", env("TOKEN_ENC_KEY")),
+        transactionsCursor: null,
+        // Its history counts as fully imported (the app shows "Up to date", not "Importing…").
+        transactionsUpdateStatus: "HISTORICAL_UPDATE_COMPLETE",
+      },
+    ]),
   );
 }
 for (const key of DATA_KEYS) {

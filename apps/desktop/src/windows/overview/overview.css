@@ -529,3 +529,11 @@
 .ov-accounts-all .ov-accounts__list {
   overflow: visible;
 }
+.ov-error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--status-danger);
+}

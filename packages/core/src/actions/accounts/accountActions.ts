@@ -313,6 +313,8 @@ export const addManualTransaction = defineAction({
       summary: `Add ${Money.format(input.amountCents)} "${input.description}" to ${displayName(a)}`,
       changes: [
         { label: "Transaction", before: null, after: `${input.date} · ${input.description} · ${Money.format(input.amountCents)}` },
+        ...(input.category ? [{ label: "Category", before: null, after: input.category }] : []),
+        ...(input.note && input.note.trim() ? [{ label: "Note", before: null, after: input.note }] : []),
         { label: "Balance", before: Money.format(a.currentBalanceCents ?? 0), after: Money.format(derivedBalance(data.transactions, a.id) + input.amountCents) },
       ],
     };

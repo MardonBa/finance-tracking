@@ -21,7 +21,8 @@ import { requestReconnect, showConnectionPrompt } from "../../connections/events
 import { isOutOfDate, relativeTime, useConnections } from "../../connections/useConnections.ts";
 import type { ConnectionHealth } from "../../connections/api.ts";
 import { todayIso } from "../../data/dates.ts";
-import { computeAlerts, type BelowZeroWarning, type OverviewAlert } from "./alerts.ts";
+import { computeAlerts, type OverviewAlert } from "./alerts.ts";
+import { useLowBalanceWarnings, warningSentence } from "../recurring/warnings.tsx";
 import { colorOfCategory, useCategoryColors } from "../../data/useCategoryColors.ts";
 import { GoalCelebrations } from "../goals/GoalCelebrations.tsx";
 import { GoalPicture } from "../goals/GoalPicture.tsx";
@@ -107,6 +108,7 @@ function Section({
   openLabel,
   children,
   loading,
+  error,
 }: {
   title: string;
   className: string;
@@ -114,6 +116,8 @@ function Section({
   openLabel?: string;
   children: ReactNode;
   loading?: boolean;
+  /** The card's data couldn't load: say so instead of showing an empty card. */
+  error?: Error;
 }) {
   return (
     <section className={`ov-card ${className}`} aria-busy={loading || undefined}>
@@ -125,7 +129,17 @@ function Section({
           </button>
         )}
       </header>
-      <div className="ov-card__body">{loading ? <div className="ov-skeleton" aria-label="Loading" /> : children}</div>
+      <div className="ov-card__body">
+        {error ? (
+          <p className="ov-error" role="alert">
+            <Icon name="warning" size={14} /> Couldn't load this. It will retry when data changes.
+          </p>
+        ) : loading ? (
+          <div className="ov-skeleton" aria-label="Loading" />
+        ) : (
+          children
+        )}
+      </div>
     </section>
   );
 }
@@ -158,7 +172,8 @@ export function OverviewWindow() {
   const netWorth = useQuery<{ totalCents: number; date: string }>("balances.netWorth", {});
   const chart = useQuery<{ points: ChartPoint[] }>("balances.netWorthChart", { from: addDays(lastMonthDay, -1), to: today, grouping: "type", fill: "carry" });
   const accounts = useQuery<{ accounts: AccountRow[] }>("accounts.list", { includeHidden: false });
-  const upcoming = useQuery<{ warnings: BelowZeroWarning[] }>("recurring.upcoming", {});
+  // Same below-zero warnings as the Recurring window (§9).
+  const lowBalance = useLowBalanceWarnings();
   const needsALook = useQuery<{ count: number }>("flows.needsALook", {});
   const recon = useQuery<{ unexplainedCount: number }>("flows.reconciliation", { from: monthStart(month), to: today });
   const connections = useConnections(w.token, { pollWhileImporting: true });
@@ -176,7 +191,7 @@ export function OverviewWindow() {
 
   const stale = staleAccounts(accounts.data?.value.accounts, connections.items);
   const alerts = computeAlerts({
-    lowBalance: upcoming.data?.value.warnings,
+    lowBalance: lowBalance.warnings.map((w) => ({ ...w, message: warningSentence(w) })),
     connections: connections.items,
     unexplainedCount: recon.data?.value.unexplainedCount,
     needsALookCount: needsALook.data?.value.count,
@@ -279,7 +294,7 @@ function NetWorthCard({
   const then = known.find((p) => p.date >= lastMonthDay && p.date <= addDays(lastMonthDay, 1));
   const change = total !== undefined && then ? total - then.totalCents : null;
   return (
-    <Section title="Net worth" className="ov-networth" onOpen={onOpen} openLabel="Open Trajectory" loading={!netWorth.data && !netWorth.error}>
+    <Section title="Net worth" className="ov-networth" onOpen={onOpen} openLabel="Open Trajectory" loading={!netWorth.data && !netWorth.error} error={netWorth.data ? undefined : netWorth.error}>
       <button type="button" className="ov-big ov-click" onClick={onOpen} aria-label={`Net worth ${total !== undefined ? Money.format(total) : ""}. Open Trajectory`}>
         <span className="ft-num">{total !== undefined ? money(total) : "—"}</span>
       </button>
@@ -401,7 +416,7 @@ function BudgetsCard({ budgets }: { budgets: Q<BudgetView[]> }) {
   const hot = b ? [...b.parts, ...(b.everythingElse ? [b.everythingElse] : [])].filter((p) => p.status === "over" || p.status === "ahead_of_pace").slice(0, 3) : [];
   const st = b ? barStatus(b.overall) : null;
   return (
-    <Section title={b?.name ?? "Budget"} className="ov-budgets" onOpen={() => open(b?.budgetId)} openLabel="Open Budgets" loading={!budgets.data && !budgets.error}>
+    <Section title={b?.name ?? "Budget"} className="ov-budgets" onOpen={() => open(b?.budgetId)} openLabel="Open Budgets" loading={!budgets.data && !budgets.error} error={budgets.data ? undefined : budgets.error}>
       {b && (
         <button type="button" className="ov-click ov-budget" onClick={() => open(b.budgetId)} aria-label={`${b.name}: ${Money.format(b.overall.spentCents)} of ${Money.format(b.overall.plannedCents ?? 0)}. Open Budgets`}>
           <span className="ov-budget__nums">
@@ -487,7 +502,7 @@ function AccountsCard({
       </ul>
   );
   return (
-    <Section title="Accounts" className="ov-accounts" loading={!accounts.data && !accounts.error}>
+    <Section title="Accounts" className="ov-accounts" loading={!accounts.data && !accounts.error} error={accounts.data ? undefined : accounts.error}>
       <div ref={fitRef} className="ov-accounts__fit">
         {list(rows)}
         {overflow && (
@@ -541,7 +556,7 @@ function RecentCard({ recent }: { recent: Q<{ rows: TxRow[] }> }) {
   const [fit, listRef] = useFitCount(RECENT_ROW_PX, 7);
   const rows = (recent.data?.value.rows ?? []).slice(0, fit);
   return (
-    <Section title="Recent spending" className="ov-recent" onOpen={() => openItem({ area: "transactions" })} openLabel="Open Transactions" loading={!recent.data && !recent.error}>
+    <Section title="Recent spending" className="ov-recent" onOpen={() => openItem({ area: "transactions" })} openLabel="Open Transactions" loading={!recent.data && !recent.error} error={recent.data ? undefined : recent.error}>
       <div ref={listRef} className="ov-recent__fit">
       {rows.length === 0 ? (
         <p className="ft-muted ft-small">No spending yet.</p>
@@ -590,7 +605,7 @@ function GoalsCard({ goals }: { goals: Q<{ goals: GoalCard[] }> }) {
   const shown = list.slice(0, 4);
   const open = (itemId?: string) => openItem({ area: "goals", itemId });
   return (
-    <Section title="Goals" className="ov-goals" onOpen={() => open()} openLabel="Open Goals" loading={!goals.data && !goals.error}>
+    <Section title="Goals" className="ov-goals" onOpen={() => open()} openLabel="Open Goals" loading={!goals.data && !goals.error} error={goals.data ? undefined : goals.error}>
       {goals.data && list.length === 0 ? (
         <p className="ft-muted ft-small">
           No goals yet ·{" "}
