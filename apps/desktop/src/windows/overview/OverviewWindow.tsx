@@ -364,7 +364,7 @@ function SpendingCard({ summary, byCat, month, today, staleCount }: { summary: Q
             ))}
           </div>
           <ul className="ov-legend">
-            {colored.slice(0, 4).map((c) => (
+            {colored.slice(0, staleCount > 0 ? 2 : 4).map((c) => (
               <li key={c.key}>
                 <span className="ov-legend__dot" style={{ background: c.color }} />
                 <span className="ov-legend__label">{c.label}</span>
