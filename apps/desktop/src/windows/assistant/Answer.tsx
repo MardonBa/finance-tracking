@@ -30,16 +30,16 @@ export function areaForQuery(query: string): AreaId {
   }
 }
 
-function bold(text: string, key: string): ReactNode[] {
-  return text.split(/\*\*(.+?)\*\*/g).map((s, i) => (i % 2 === 1 ? <strong key={`${key}b${i}`}>{s}</strong> : s));
+function italic(text: string, key: string): ReactNode[] {
+  return text.split(/(?<![*\w])\*(?!\s)([^*]+?)\*(?![*\w])/g).map((s, i) => (i % 2 === 1 ? <em key={`${key}i${i}`}>{s}</em> : s));
 }
 
-function inline(text: string, citations: Record<string, Citation>, openArea: (a: AreaId) => void, key: string): ReactNode[] {
+function withTags(text: string, citations: Record<string, Citation>, openArea: (a: AreaId) => void, key: string): ReactNode[] {
   const out: ReactNode[] = [];
   let last = 0;
   let n = 0;
   for (const m of text.matchAll(TAG)) {
-    out.push(...bold(text.slice(last, m.index), `${key}t${n}`));
+    out.push(...italic(text.slice(last, m.index), `${key}t${n}`));
     for (const tag of m[1]!.split(/\s*,\s*/)) {
       const c = citations[tag];
       const k = `${key}c${n++}`;
@@ -69,8 +69,17 @@ function inline(text: string, citations: Record<string, Citation>, openArea: (a:
     }
     last = m.index + m[0].length;
   }
-  out.push(...bold(text.slice(last), `${key}end`));
+  out.push(...italic(text.slice(last), `${key}end`));
   return out;
+}
+
+/** **bold** first (it may contain citation tags), then tags and *italics* inside each piece. */
+function inline(text: string, citations: Record<string, Citation>, openArea: (a: AreaId) => void, key: string): ReactNode[] {
+  return text
+    .split(/\*\*(.+?)\*\*/g)
+    .flatMap((s, i): ReactNode[] =>
+      i % 2 === 1 ? [<strong key={`${key}b${i}`}>{withTags(s, citations, openArea, `${key}b${i}`)}</strong>] : withTags(s, citations, openArea, `${key}s${i}`),
+    );
 }
 
 export function Answer({ text, citations, openArea }: { text: string; citations: Record<string, Citation>; openArea: (a: AreaId) => void }) {
@@ -88,7 +97,8 @@ export function Answer({ text, citations, openArea }: { text: string; citations:
       return;
     }
     flush(i);
-    if (line.trim()) blocks.push(<p key={`p${i}`}>{inline(line.replace(/^#+\s*/, ""), citations, openArea, `p${i}`)}</p>);
+    if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) blocks.push(<hr key={`hr${i}`} className="as-rule" />);
+    else if (line.trim()) blocks.push(<p key={`p${i}`}>{inline(line.replace(/^#+\s*/, ""), citations, openArea, `p${i}`)}</p>);
   });
   flush(-1);
   return <div className="as-answer">{blocks}</div>;

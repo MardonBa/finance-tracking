@@ -241,6 +241,17 @@ describe("AssistantWindow", () => {
     setItem.mockRestore();
   });
 
+  it("renders bold around a citation, italics and rules without leaking markdown", async () => {
+    api.chat.mockResolvedValue(response({ text: "**Under by $202.25 [F2]** a month\n\n---\n\n*(Note: you move the money at your bank.)*" }));
+    await renderAssistant();
+    fireEvent.click(screen.getByRole("button", { name: PROMPTS[0]!.label }));
+    const strong = await screen.findByText(/Under by \$202.25/, { selector: "strong" });
+    expect(within(strong).getByRole("button", { name: "Show transactions: Dining · November" })).toBeTruthy();
+    expect(screen.getByText(/you move the money at your bank/, { selector: "em" })).toBeTruthy();
+    expect(document.querySelector("hr.as-rule")).toBeTruthy();
+    expect(document.querySelector(".as-answer")!.textContent).not.toMatch(/\*|---/);
+  });
+
   it('"Explain this" opens the assistant and asks about that figure', async () => {
     await renderAssistant();
     act(() => explainWithAssistant({ query: "spending.monthlySummary", params: { month: "2026-11", usualMonths: 3 }, figureId: "spending", label: "Spending · Nov" }));
