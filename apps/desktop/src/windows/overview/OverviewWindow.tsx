@@ -5,23 +5,24 @@
  * window (or transactions) behind it. The alerts strip shows only when
  * something needs dealing with.
  */
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Money, addDays, addMonths, monthOf, monthStart } from "@ft/core";
 import { useQuery } from "../../data/hooks.ts";
 import { openDrillDown, openItem } from "../../data/drilldown.ts";
 import { useWindow } from "../../shell/context.ts";
 import { Icon } from "../../ui/Icon.tsx";
+import { Dialog } from "../../dialogs/Dialog.tsx";
 import { StatusLabel, type Status } from "../../ui/components.tsx";
 import { foldOther, OTHER_KEY } from "../../ui/colorMap.ts";
 import { AddAccountMenu } from "../../accounts/AddAccountMenu.tsx";
 import { openAccountSheet } from "../../accounts/AccountSheets.tsx";
 import { RefreshButton } from "../../connections/RefreshButton.tsx";
-import { requestReconnect } from "../../connections/events.ts";
+import { requestReconnect, showConnectionPrompt } from "../../connections/events.ts";
 import { isOutOfDate, relativeTime, useConnections } from "../../connections/useConnections.ts";
 import type { ConnectionHealth } from "../../connections/api.ts";
-import { todayIso } from "../../accounts/manual.tsx";
+import { todayIso } from "../../data/dates.ts";
 import { computeAlerts, type BelowZeroWarning, type OverviewAlert } from "./alerts.ts";
-import { overviewCategoryColors } from "./adapters.tsx";
+import { colorOfCategory, useCategoryColors } from "../../data/useCategoryColors.ts";
 import { GoalCelebrations } from "../goals/GoalCelebrations.tsx";
 import { GoalPicture } from "../goals/GoalPicture.tsx";
 import { goalColor } from "../goals/goalColors.ts";
@@ -41,6 +42,8 @@ interface ByCategory {
 }
 interface TxRow {
   transactionId: string;
+  merchantKey: string;
+  category: string | null;
   date: string;
   merchantName: string | null;
   rawDescription: string;
@@ -180,7 +183,10 @@ export function OverviewWindow() {
   });
 
   const runAlert = (a: OverviewAlert) => {
-    if (a.kind === "reconnect" && a.itemId) requestReconnect(a.itemId);
+    if (a.kind === "reconnect") {
+      if (a.itemId) requestReconnect(a.itemId);
+      else showConnectionPrompt();
+    }
     else if (a.kind === "low-balance") openItem({ area: "recurring" });
     // TODO(revisit): wire after merge — the Transactions window's item ids for its review lists are assumed.
     else if (a.kind === "needs-a-look") openItem({ area: "transactions", itemId: "needs-a-look" });
@@ -293,11 +299,13 @@ function NetWorthCard({
 }
 
 function SpendingCard({ summary, byCat, month, today, staleCount }: { summary: Q<MonthlySummary>; byCat: Q<ByCategory>; month: string; today: string; staleCount: number }) {
+  // The same app-wide category colours as the Spending window (§15).
+  const colors = useCategoryColors();
   const s = summary.data?.value;
   const cats = byCat.data?.value.categories ?? [];
   const total = byCat.data?.value.totalCents ?? 0;
   const items = cats.map((c) => ({ key: c.category, label: c.label, value: c.cents }));
-  const colored = foldOther(items, overviewCategoryColors(items)).slice(0, 6);
+  const colored = foldOther(items, colors).slice(0, 6);
   const diff = s?.usual ? s.spendingCents - s.usual.spendingCents : null;
   const params = { from: monthStart(month), to: today, level: "primary" };
   const openSpending = () => openItem({ area: "spending" });
@@ -437,11 +445,16 @@ function AccountsCard({
   stale: Map<string, ConnectionHealth>;
   connections: ConnectionHealth[] | undefined;
 }) {
-  const rows = accounts.data?.value.accounts ?? [];
-  return (
-    <Section title="Accounts" className="ov-accounts" loading={!accounts.data && !accounts.error}>
+  const all = accounts.data?.value.accounts ?? [];
+  const [fit, fitRef] = useFitCount(ACCOUNT_ROW_PX, 3);
+  const [showAll, setShowAll] = useState(false);
+  // Out-of-date accounts first, so a marker is never hidden behind "+N more".
+  const ordered = [...all].sort((a, b) => Number(stale.has(b.id)) - Number(stale.has(a.id)));
+  const overflow = ordered.length > fit;
+  const rows = overflow ? ordered.slice(0, Math.max(1, fit - 1)) : ordered;
+  const list = (items: AccountRow[]) => (
       <ul className="ov-accounts__list">
-        {rows.map((a) => {
+        {items.map((a) => {
           const conn = a.itemId ? connections?.find((c) => c.itemId === a.itemId) : undefined;
           const bad = stale.get(a.id);
           const importing = conn?.importStatus === "importing" && !bad;
@@ -472,31 +485,60 @@ function AccountsCard({
           );
         })}
       </ul>
+  );
+  return (
+    <Section title="Accounts" className="ov-accounts" loading={!accounts.data && !accounts.error}>
+      <div ref={fitRef} className="ov-accounts__fit">
+        {list(rows)}
+        {overflow && (
+          <button type="button" className="ft-link ft-small ov-more" onClick={() => setShowAll(true)}>
+            +{ordered.length - rows.length} more accounts
+          </button>
+        )}
+      </div>
+      {showAll && (
+        <Dialog title="All accounts" onClose={() => setShowAll(false)}>
+          <div className="ov-accounts-all" onClick={() => setShowAll(false)}>
+            {list(ordered)}
+          </div>
+        </Dialog>
+      )}
     </Section>
   );
 }
 
 /** How many fixed-height rows fit in the element (the Overview never scrolls, §13). */
-function useFitCount(ref: RefObject<HTMLElement | null>, rowPx: number, min: number): number {
+function useFitCount(rowPx: number, min: number): [number, (el: HTMLElement | null) => void] {
   const [n, setN] = useState(min);
+  // A callback ref: the list mounts only after its data loads.
+  const [el, setEl] = useState<HTMLElement | null>(null);
   useLayoutEffect(() => {
-    const el = ref.current;
     if (!el || typeof ResizeObserver === "undefined") return;
     const measure = () => setN(Math.max(min, Math.floor(el.clientHeight / rowPx)));
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [ref, rowPx, min]);
-  return n;
+  }, [el, rowPx, min]);
+  return [n, setEl];
 }
 
-export const RECENT_ROW_PX = 35;
+export const RECENT_ROW_PX = 32;
+export const ACCOUNT_ROW_PX = 37;
+
+/** A transaction opens in the Transactions window: that day's transactions at that merchant (normally just this one). */
+export function openTransaction(t: Pick<TxRow, "date" | "merchantKey" | "merchantName" | "rawDescription">): void {
+  openDrillDown({
+    query: "transactions.list",
+    params: { from: t.date, to: t.date, dateField: "date", merchantKeys: [t.merchantKey], measure: "amount", includePending: true },
+    figureId: "total",
+    label: `${t.merchantName ?? t.rawDescription} · ${shortDate(t.date)}`,
+  });
+}
 
 function RecentCard({ recent }: { recent: Q<{ rows: TxRow[] }> }) {
-  const listRef = useRef<HTMLDivElement>(null);
   // At least 7 at the default size; more when the window is taller.
-  const fit = useFitCount(listRef, RECENT_ROW_PX, 7);
+  const [fit, listRef] = useFitCount(RECENT_ROW_PX, 7);
   const rows = (recent.data?.value.rows ?? []).slice(0, fit);
   return (
     <Section title="Recent spending" className="ov-recent" onOpen={() => openItem({ area: "transactions" })} openLabel="Open Transactions" loading={!recent.data && !recent.error}>
@@ -510,10 +552,12 @@ function RecentCard({ recent }: { recent: Q<{ rows: TxRow[] }> }) {
               <button
                 type="button"
                 className="ov-click ov-tx"
-                onClick={() => openItem({ area: "transactions", itemId: t.transactionId })}
+                onClick={() => openTransaction(t)}
                 aria-label={`${t.merchantName ?? t.rawDescription}, ${Money.format(t.amountCents)}, ${shortDate(t.date)}. Transaction details`}
               >
-                <span className="ov-tx__merchant">{t.merchantName ?? t.rawDescription}</span>
+                <span className="ov-tx__merchant">
+                  <span className="ov-legend__dot" style={{ background: colorOfCategory(t.category ?? "") }} aria-hidden="true" /> {t.merchantName ?? t.rawDescription}
+                </span>
                 <span className="ov-tx__amount ft-num">{Money.format(t.amountCents)}</span>
                 <span className="ov-tx__meta">
                   {t.categoryLabel ?? "Uncategorised"} · {shortDate(t.date)}

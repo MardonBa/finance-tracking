@@ -31,7 +31,8 @@
 /* ------------------------------------------------------------- alerts */
 .ov-alerts {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow: hidden;
   gap: var(--space-1) var(--space-2);
   margin: 0;
   padding: 0;
@@ -48,6 +49,13 @@
   color: var(--status-warning);
   font-size: var(--text-xs);
   font-weight: var(--weight-medium);
+  min-width: 0;
+  white-space: nowrap;
+}
+.ov-alert__text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .ov-alert--reconnect,
 .ov-alert--low-balance {
@@ -65,7 +73,7 @@
   min-height: 0;
   display: grid;
   grid-template-columns: 1fr 1fr 1.1fr;
-  grid-template-rows: minmax(0, 0.74fr) minmax(0, 1.26fr);
+  grid-template-rows: minmax(0, 0.84fr) minmax(0, 1.16fr);
   grid-template-areas:
     "networth spending budgets"
     "accounts recent goals";
@@ -490,8 +498,34 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  --ov-row-h: 34px;
+  --ov-row-h: 31px;
 }
 .ov-recent__list {
   gap: 1px;
+}
+
+/* Fixed-size parts never shrink; lists below them take what is left. */
+.ov-card__body > * {
+  flex-shrink: 0;
+}
+.ov-card__body > .ov-recent__fit,
+.ov-card__body > ul {
+  flex-shrink: 1;
+}
+
+.ov-accounts__fit {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.ov-account {
+  height: 36px;
+  align-content: center;
+  line-height: 1.25;
+}
+.ov-more {
+  margin: 2px var(--space-1) 0;
+}
+.ov-accounts-all .ov-accounts__list {
+  overflow: visible;
 }

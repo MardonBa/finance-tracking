@@ -38,9 +38,13 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 
 export function computeAlerts(i: AlertInputs): OverviewAlert[] {
   const out: OverviewAlert[] = [];
-  for (const c of i.connections ?? []) {
-    if (!needsAttention(c)) continue;
+  const broken = (i.connections ?? []).filter(needsAttention);
+  if (broken.length === 1) {
+    const c = broken[0]!;
     out.push({ id: `reconnect:${c.itemId}`, kind: "reconnect", text: c.message, action: "Reconnect", itemId: c.itemId });
+  } else if (broken.length > 1) {
+    // One line for several banks; "Fix" reopens the reconnect prompt listing each.
+    out.push({ id: "reconnect", kind: "reconnect", text: `${broken.length} banks need attention`, action: "Fix" });
   }
   for (const w of i.lowBalance ?? []) {
     out.push({ id: `low:${w.accountId}`, kind: "low-balance", text: w.message, action: "See what's due" });

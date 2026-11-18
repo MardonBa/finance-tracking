@@ -14,7 +14,7 @@ import { Icon } from "../ui/Icon.tsx";
 import { Dialog } from "../dialogs/Dialog.tsx";
 import { notifyDataChanged } from "../data/hooks.ts";
 import { connectionsApi, needsAttention, type ConnectionHealth } from "./api.ts";
-import { RECONNECT_EVENT } from "./events.ts";
+import { RECONNECT_EVENT, SHOW_CONNECTION_PROMPT_EVENT } from "./events.ts";
 import { defaultConnectDeps, useConnectFlow, type ConnectDeps } from "./useConnectFlow.ts";
 import { notifyConnectionsChanged, relativeTime } from "./useConnections.ts";
 import "./connections.css";
@@ -40,9 +40,16 @@ export function ConnectionHealthHost({ token, deps, loadHealth }: ConnectionHeal
   const [reconnecting, setReconnecting] = useState<{ itemId: string; institutionName: string | null } | null>(null);
   const [known, setKnown] = useState<ConnectionHealth[]>([]);
 
-  // Once per unlock: the gate mounts this right after Touch ID.
+  // Once per unlock (the gate mounts this right after Touch ID), and again on request.
+  const [check, setCheck] = useState(0);
+  useEffect(() => {
+    const on = () => setCheck((n) => n + 1);
+    window.addEventListener(SHOW_CONNECTION_PROMPT_EVENT, on);
+    return () => window.removeEventListener(SHOW_CONNECTION_PROMPT_EVENT, on);
+  }, []);
   useEffect(() => {
     let live = true;
+    void check;
     (loadHealth ?? (() => connectionsApi.health(token)))().then(
       (r) => {
         if (!live) return;
@@ -56,7 +63,7 @@ export function ConnectionHealthHost({ token, deps, loadHealth }: ConnectionHeal
     return () => {
       live = false;
     };
-  }, [token, loadHealth]);
+  }, [token, loadHealth, check]);
 
   useEffect(() => {
     const on = (e: Event) => {
