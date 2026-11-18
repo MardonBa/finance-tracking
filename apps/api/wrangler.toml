@@ -23,6 +23,7 @@ workers_dev = true
 ENVIRONMENT = "dev"
 PLAID_ENV = "sandbox"
 # IANA zone used to compute "today" for the user (cron, queries).
+# TODO(revisit): assumed America/New_York; set to the user's real zone.
 USER_TIME_ZONE = "America/New_York"
 
 [[env.dev.d1_databases]]
@@ -37,6 +38,7 @@ bucket_name = "ft-backups-dev"
 
 [env.dev.triggers]
 # Daily sync, 11:00 UTC (early morning in US time zones).
+# TODO(revisit): sync time is an open question in success-criteria §4.
 crons = ["0 11 * * *"]
 
 # ------------------------------------------------------------------ production
@@ -52,13 +54,13 @@ USER_TIME_ZONE = "America/New_York"
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "ft-prod"
-# PLACEHOLDER (Phase 4): create with `wrangler d1 create ft-prod` and paste its id here.
+# TODO(revisit): PLACEHOLDER (Phase 4): create with `wrangler d1 create ft-prod` and paste its id here.
 database_id = "00000000-0000-0000-0000-000000000000"
 migrations_dir = "migrations"
 
 [[env.production.r2_buckets]]
 binding = "BACKUPS"
-# PLACEHOLDER (Phase 4): create with `wrangler r2 bucket create ft-backups-prod`.
+# TODO(revisit): PLACEHOLDER (Phase 4): create with `wrangler r2 bucket create ft-backups-prod`.
 bucket_name = "ft-backups-prod"
 
 [env.production.triggers]

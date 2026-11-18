@@ -87,6 +87,7 @@ export async function undoAction(env: AppEnv, logId: string) {
   const entry = await db.select().from(actionLog).where(eq(actionLog.id, logId)).get();
   if (!entry) throw new NotFound(`No action log entry "${logId}"`);
   if (entry.undoneAt) throw new ActionError("This change was already undone");
+  // TODO(revisit): no conflict detection if a later action changed the same rows.
   const inverse = JSON.parse(entry.inverseJson) as Mutation[];
   const now = new Date().toISOString();
   await db.batch([

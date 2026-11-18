@@ -28,7 +28,8 @@
   --text-muted: #55627a;
   --text-on-accent: #ffffff;
 
-  /* ---- Orange (proposed): highlights, chart series, "running hot" */
+  /* ---- Orange (proposed): highlights, chart series, "running hot"
+     TODO(revisit): exact orange/pink shades to settle with a style sample (§15 Open). */
   --orange-700: #b4531b;
   --orange-500: #e07b39;
   --orange-300: #f2a96b;

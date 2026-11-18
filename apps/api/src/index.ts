@@ -32,6 +32,7 @@ app.get("/health", (c) => c.json({ ok: true, env: c.env.ENVIRONMENT}));
 
 // Placeholders for the backend track (Phase 1). Public by design; they must
 // verify their own inputs (Plaid webhook signature) before acting.
+// TODO(revisit): 501 until the backend track adds signed-webhook verification.
 app.post("/plaid/webhook", (c) => c.body(null, 501));
 app.get("/plaid/redirect", (c) =>
   c.html(
@@ -54,7 +55,7 @@ app.onError((err, c) => {
   return c.json({ error: "Internal error" }, 500);
 });
 
-/** Daily job (wrangler.toml crons). The backend track fills in sync, snapshots and backups. */
+/** Daily job (wrangler.toml crons). TODO(revisit): stub; the backend track fills in sync, snapshots and backups. */
 export async function runScheduled(env: AppEnv, scheduledTimeMs: number): Promise<{ today: string }> {
   assertConfigured(env);
   const today = todayFor(env, scheduledTimeMs);

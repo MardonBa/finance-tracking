@@ -202,6 +202,7 @@ export function buildDevSeed(today: IsoDate): CoreData {
   }
 
   // Specific cases near the end of the range.
+  // TODO(revisit): Sandbox custom users can't set merchant names or pending→posted transitions; those cases come from this seed and user_transactions_dynamic.
   const lastFull = startOfMonth(addMonths(today, -1));
   const purchase = tx("acc_card", addDays(lastFull, 6), -12_999, "AMAZON MKTP US*9ZZ88YY", ["GENERAL_MERCHANDISE", "GENERAL_MERCHANDISE_ONLINE_MARKETPLACES"], { merchantName: "Amazon", merchantEntityId: "ent_amazon" });
   const refund = tx("acc_card", addDays(today, -3), 2_999, "AMAZON.COM REFUND", ["GENERAL_MERCHANDISE", "GENERAL_MERCHANDISE_ONLINE_MARKETPLACES"], { merchantName: "Amazon", merchantEntityId: "ent_amazon" });
