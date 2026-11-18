@@ -49,7 +49,9 @@ export function ranges(n: number, flag: (i: number) => boolean): Array<[number, 
 
 export function netWorthView(chart: NetWorthChart, grain: Grain) {
   const keep = new Set(downsample(chart.points, grain).map((p) => p.date));
-  const idx = chart.points.map((p, i) => (keep.has(p.date) ? i : -1)).filter((i) => i >= 0);
+  // Start where the first account's history starts (no flat zeros before any data).
+  const first = chart.points.findIndex((p) => p.breakdown.some((b) => b.cents !== null));
+  const idx = chart.points.map((p, i) => (keep.has(p.date) && first >= 0 && i >= first ? i : -1)).filter((i) => i >= 0);
   const points = idx.map((i) => chart.points[i]!);
   const series = chart.series.map((s) => ({ ...s, points: idx.map((i) => s.points[i]!) }));
   return { points, series };
@@ -60,10 +62,17 @@ export function netWorthOption(chart: NetWorthChart, grain: Grain) {
   const dates = points.map((p) => p.date);
   const labels = dates.map((d) => (grain === "year" ? d.slice(0, 4) : grain === "month" ? monthShort(d.slice(0, 7)) : shortDate(d)));
   const estimated = ranges(points.length, (i) => points[i]!.isEstimated);
-  const starts = chart.historyStarts
-    .filter((h) => h.startsOn && h.startsOn > (dates[0] ?? "") && h.startsOn <= (dates.at(-1) ?? ""))
-    .map((h) => ({ h, i: dates.findIndex((d) => d >= h.startsOn!) }))
-    .filter((x) => x.i >= 0);
+  // "History starts" markers, one per chart position (accounts starting together share it).
+  const startsAt = new Map<number, string[]>();
+  for (const h of chart.historyStarts) {
+    if (!h.startsOn || h.startsOn <= (dates[0] ?? "") || h.startsOn > (dates.at(-1) ?? "")) continue;
+    const i = dates.findIndex((d) => d >= h.startsOn!);
+    if (i >= 0) startsAt.set(i, [...(startsAt.get(i) ?? []), h.label]);
+  }
+  const starts = [...startsAt.entries()].map(([i, names]) => ({
+    i,
+    name: names.length > 2 ? `History starts (${names.length} accounts)` : `History starts: ${names.join(", ")}`,
+  }));
 
   return {
     grid: { left: 8, right: 16, top: 28, bottom: 8, containLabel: true },
@@ -96,7 +105,9 @@ export function netWorthOption(chart: NetWorthChart, grain: Grain) {
       {
         name: "Net worth",
         type: "line",
-        symbol: "none",
+        // A single day of history is still worth a visible dot.
+        symbol: points.length < 3 ? "circle" : "none",
+        symbolSize: 8,
         lineStyle: { width: 2, color: color["text-strong"] },
         itemStyle: { color: color["text-strong"] },
         data: points.map((p) => p.totalCents / 100),
@@ -111,7 +122,7 @@ export function netWorthOption(chart: NetWorthChart, grain: Grain) {
           symbol: "none",
           lineStyle: { color: color["text-muted"], type: "dotted" },
           label: { color: color["text-muted"], formatter: (x: { name: string }) => x.name, position: "insideEndTop" },
-          data: starts.map(({ h, i }) => ({ name: `${h.label}: history starts`, xAxis: labels[i] })),
+          data: starts.map(({ i, name }) => ({ name, xAxis: labels[i] })),
         },
       },
     ],
@@ -194,11 +205,12 @@ export function projectionOption(p: ProjectionResult) {
     yAxis: { type: "value", ...axisMoney },
     series: [
       // The band: an invisible lower line, then (high − low) stacked on top of it.
-      { name: "Range low", type: "line", stack: "band", symbol: "none", lineStyle: { opacity: 0 }, data: p.points.map((pt) => pt.lowCents / 100), tooltip: { show: false } },
+      { name: "Range low", type: "line", stack: "band", stackStrategy: "all", symbol: "none", lineStyle: { opacity: 0 }, data: p.points.map((pt) => pt.lowCents / 100), tooltip: { show: false } },
       {
         name: "Range",
         type: "line",
         stack: "band",
+        stackStrategy: "all",
         symbol: "none",
         lineStyle: { opacity: 0 },
         itemStyle: { color: color["accent-blue-soft"] },

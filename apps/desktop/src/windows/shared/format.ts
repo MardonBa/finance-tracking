@@ -14,7 +14,7 @@ export function moneyShort(cents: number): string {
   if (abs >= 1e9) return `${sign}$${(abs / 1e9).toFixed(1)}B`;
   if (abs >= 1e6) return `${sign}$${(abs / 1e6).toFixed(1)}M`;
   if (abs >= 1e3) return `${sign}$${(abs / 1e3).toFixed(abs >= 1e4 ? 0 : 1)}k`;
-  return `${sign}$${abs.toFixed(0)}`;
+  return `${sign}$${abs.toFixed(abs > 0 && abs < 10 && abs % 1 !== 0 ? 2 : 0)}`;
 }
 
 const dateFmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" });

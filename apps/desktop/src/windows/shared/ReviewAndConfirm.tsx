@@ -2,7 +2,7 @@
  * Every edit in these windows goes through a registry action, and shows its
  * preview (before → after) before it runs, the same way the AI's proposals do.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ActionPreview } from "@ft/core";
 import { useActions } from "../../data/hooks.ts";
 import type { ActionResponse } from "../../api/client.ts";
@@ -65,6 +65,12 @@ export function ReviewAndConfirm({ action, input, reviewLabel = "Review", confir
   const [preview, setPreview] = useState<ActionPreview | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // A preview belongs to the exact input it was made for: editing the form discards it.
+  const inputKey = JSON.stringify(input);
+  useEffect(() => {
+    setPreview(null);
+    setError(null);
+  }, [inputKey, action]);
 
   const review = async () => {
     if (input === null) return;

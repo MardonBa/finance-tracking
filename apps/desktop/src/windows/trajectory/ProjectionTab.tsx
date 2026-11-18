@@ -106,7 +106,9 @@ export function ProjectionTab() {
           </ul>
         </>
       )}
-      <SegmentedControl label="Edit" size="sm" options={PANELS} value={panel} onChange={(v) => (setPanel(v), setPreviewPhases(null))} />
+      <div className="rti-toolbar">
+        <SegmentedControl label="Edit" size="sm" options={PANELS} value={panel} onChange={(v) => (setPanel(v), setPreviewPhases(null))} />
+      </div>
       {panel === "assumptions" && form && storedA && (
         <AssumptionsPanel
           form={form}

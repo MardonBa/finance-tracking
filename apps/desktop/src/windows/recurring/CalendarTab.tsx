@@ -22,6 +22,16 @@ export function CalendarTab({ month, setMonth }: { month: IsoMonth; setMonth: (m
 
   return (
     <div className="rti-stack">
+      {cal && (
+          <div className="rti-row">
+            <StatNumber
+              label="Fixed costs this month"
+              value={money(cal.fixedCostsCents)}
+              detail={cal.estimatedCents > 0 ? `includes ≈ ${money(cal.estimatedCents)} of estimates` : "no estimates"}
+            />
+            <StatNumber label="Recurring income" value={money(cal.incomeCents)} />
+          </div>
+        )}
       <div className="rti-toolbar">
         <Button size="sm" aria-label="Previous month" onClick={() => setMonth(addMonthsToMonth(month, -1))}>
           ‹ Prev
@@ -32,17 +42,6 @@ export function CalendarTab({ month, setMonth }: { month: IsoMonth; setMonth: (m
         <Button size="sm" aria-label="Next month" onClick={() => setMonth(addMonthsToMonth(month, 1))}>
           Next ›
         </Button>
-        <span className="rti-toolbar__spacer" />
-        {cal && (
-          <div className="rti-row">
-            <StatNumber
-              label="Fixed costs this month"
-              value={money(cal.fixedCostsCents)}
-              detail={cal.estimatedCents > 0 ? `includes ≈ ${money(cal.estimatedCents)} of estimates` : "no estimates"}
-            />
-            <StatNumber label="Recurring income" value={money(cal.incomeCents)} />
-          </div>
-        )}
       </div>
       {q.error && <p className="rti-error">Couldn't load the calendar: {q.error.message}</p>}
       {cal && cal.days.length === 0 && (

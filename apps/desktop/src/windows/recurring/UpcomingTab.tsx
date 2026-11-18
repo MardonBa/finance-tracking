@@ -43,7 +43,7 @@ function balanceOption(p: AccountProjection) {
           silent: true,
           symbol: "none",
           lineStyle: { color: below ? color["status-danger"] : color["text-muted"], type: "dashed" },
-          label: { formatter: "$0", color: color["text-muted"] },
+          label: { show: false },
           data: [{ yAxis: 0 }],
         },
       },
