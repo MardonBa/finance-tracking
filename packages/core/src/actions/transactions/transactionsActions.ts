@@ -59,24 +59,39 @@ export const setNote = defineAction({
   name: "transactions.setNote",
   description: "Add, edit or remove the note on any transaction (purchases, income, transfers, investments, card payments, Poker, cash).",
   input: z.object({ transactionId: idSchema, note: z.string().max(2000).nullable() }),
-  needs: ["transactions", "overrides"],
+  // The ledger finds the other half of a matched transfer (one note per pair, §7).
+  needs: LEDGER_NEEDS,
   examples: [
     { transactionId: "tx_transfer_out_hysa", note: "Monthly savings" },
     { transactionId: "tx_poker_in", note: null },
   ],
   describe(data, input) {
     const tx = requireTx(data, input.transactionId);
-    const before = findRow(data, "overrides", { transactionId: tx.id })?.note ?? null;
+    const pair = notePair(data, tx.id);
+    const before = pair.map((id) => findRow(data, "overrides", { transactionId: id })?.note ?? null).find((n) => n !== null) ?? null;
     const note = input.note && input.note.trim().length > 0 ? input.note : null;
-    return { summary: `${note ? "Set" : "Remove"} the note on ${txLabel(tx)}`, changes: [{ label: "Note", before, after: note }] };
+    const what = pair.length > 1 ? `${txLabel(tx)} (one note for the matched transfer)` : txLabel(tx);
+    return { summary: `${note ? "Set" : "Remove"} the note on ${what}`, changes: [{ label: "Note", before, after: note }] };
   },
   apply(data, input, ctx) {
     const tx = requireTx(data, input.transactionId);
     const note = input.note && input.note.trim().length > 0 ? input.note : null;
-    return [overrideWith(data, tx.id, ctx, { note })];
+    // A matched transfer keeps one note, on its money-out half; the other half's is cleared.
+    const [holder, ...others] = notePair(data, tx.id);
+    const muts: Mutation[] = [overrideWith(data, holder!, ctx, { note })];
+    for (const id of others) if (findRow(data, "overrides", { transactionId: id })?.note) muts.push(overrideWith(data, id, ctx, { note: null }));
+    return muts;
   },
   inverse: restoreInverse,
 });
+
+/** [the transaction that holds the note, …the other half of its matched transfer]. */
+function notePair(data: Parameters<typeof buildLedger>[0], id: string): string[] {
+  const other = buildLedger(data).byTransaction.get(id)?.[0]?.transferCounterpartId ?? null;
+  if (!other) return [id];
+  const self = findRow(data, "transactions", { id })!;
+  return self.amountCents < 0 ? [id, other] : [other, id];
+}
 
 export const setTags = defineAction({
   name: "transactions.setTags",
