@@ -4,14 +4,14 @@
  * 72h relock; back to Google sign-in on any 401. The Shell (and so every
  * data request) only mounts in the `ready` state.
  */
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef } from "react";
 import { API_URL, DEV_APP_TOKEN, setUnauthorizedHandler } from "../api/client.ts";
 import { errorText, isTauri, native } from "../native/bridge.ts";
-import { Shell } from "../shell/Shell.tsx";
-import { Button, Card, EmptyState } from "../ui/components.tsx";
+import { Button } from "../ui/components.tsx";
 import { gateReducer, type GateEvent, type GateState } from "./gate.ts";
 import { LockScreen } from "./LockScreen.tsx";
-import { ADD_BANKS_STEP_ID, ONBOARDING_STEPS } from "./onboarding.ts";
+import { ONBOARDING_STEPS } from "./onboarding.ts";
+import { Ready } from "./Ready.tsx";
 
 const UNLOCK_REASON = "unlock Finance Tracker";
 const SETUP_REASON = "set up Touch ID for Finance Tracker";
@@ -20,7 +20,6 @@ const reducer = (s: GateState, e: GateEvent) => gateReducer(s, e, ONBOARDING_STE
 
 export function AuthGate() {
   const [state, dispatch] = useReducer(reducer, { kind: "starting" });
-  const [addingBanks, setAddingBanks] = useState(false);
 
   // Start: dev bypass, unsupported (plain browser), or check the Keychain.
   useEffect(() => {
@@ -141,30 +140,7 @@ export function AuthGate() {
         </LockScreen>
       );
     }
-    case "ready": {
-      const addBanks = ONBOARDING_STEPS.find((s) => s.id === ADD_BANKS_STEP_ID);
-      return (
-        <>
-          <Shell token={state.token} onAddBanks={() => setAddingBanks(true)} />
-          {addingBanks && (
-            <div className="gate-overlay" role="dialog" aria-modal="true" aria-label="Add a bank">
-              {addBanks ? (
-                <addBanks.component token={state.token} done={() => setAddingBanks(false)} />
-              ) : (
-                // TODO(revisit): placeholder until Phase 2 registers the "add-banks" onboarding step.
-                <Card>
-                  <EmptyState
-                    icon="plus"
-                    title="Bank connections aren't set up yet"
-                    description="Adding banks through Plaid arrives with the onboarding flow."
-                    action={{ label: "Close", onClick: () => setAddingBanks(false) }}
-                  />
-                </Card>
-              )}
-            </div>
-          )}
-        </>
-      );
-    }
+    case "ready":
+      return <Ready token={state.token} onSignedOut={() => dispatch({ type: "unauthorized" })} />;
   }
 }

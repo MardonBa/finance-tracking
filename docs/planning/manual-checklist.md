@@ -44,3 +44,17 @@ Steps only you can do: real Touch ID, browser sign-in, real banks, production. E
 - [ ] Trajectory: earning vs spending numbers match what you'd expect for a couple of months; clicking one opens its transactions (once the Transactions window is merged).
 - [ ] Investments: holdings and values match your brokerage; performance's "put in" matches your own record of transfers since connecting.
 - [ ] Investments: add a note to a dividend and see it after a sync (the sync must not wipe it).
+
+## Onboarding & overview
+- [ ] First run in the real app: after "Set up Touch ID", the "Add your banks" step opens. Check "Skip for now" lands on the desktop with no banks.
+- [ ] Connect a bank (Sandbox First Platypus, `user_good` / `pass_good`): Plaid opens in Safari/your default browser, the app comes forward on `financetracker://plaid-complete`, and the accounts found are listed. Rename one, hide one, change a type, Save → the before → after card → the Overview shows it.
+- [ ] Platypus OAuth Bank: same, through the bank's OAuth page.
+- [ ] Close the Plaid tab halfway → "Cancel" in the app → "Nothing was saved" → "Try again" opens a fresh Plaid session.
+- [ ] Connect the same bank twice → the duplicate warning; try both "Discard" and "Keep" (matching accounts hidden).
+- [ ] While a new bank imports, its row says "Importing transactions…" and turns into "Up to date" without reopening anything.
+- [ ] `/sandbox/item/reset_login` on a connected item (dev route `POST /dev/sandbox/reset-login`), quit and relaunch → right after Touch ID, the prompt names the bank and "Needs you to sign in again"; Reconnect → Plaid update mode in the browser → back in the app, the bank is fixed and history kept. Dismiss it once instead → the accounts show "Out of date · …" and net worth says it includes out-of-date accounts.
+- [ ] Refresh on the Overview: progress, then "Up to date" or the bank's error with Reconnect.
+- [ ] Overview at its default size on your screen: everything visible without scrolling; the alerts strip only shows when something needs dealing with.
+- [ ] Each Overview element opens the right place: spending → Spending / its transactions, a transaction → Transactions, budget → Budgets, goal → Goals, net worth → Trajectory, an account → its details.
+- [ ] Add account → Manual account "Wallet" with $40 → add, edit, delete a transaction with a category and note; the balance and net worth follow.
+- [ ] Dock → Security: your credentials are listed; "Sign out this Mac" (confirm) sends you back to Google sign-in. Try "Revoke all" only when you mean it.

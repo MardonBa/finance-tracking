@@ -47,6 +47,11 @@ export interface ActionResponse {
   preview: ActionPreview;
 }
 
+/** Any backend route (connections, refresh, auth), with the same 401 handling as queries. */
+export function apiRequest<T>(path: string, token: string, init: RequestInit = {}): Promise<T> {
+  return call<T>(path, token, init);
+}
+
 async function call<T>(path: string, token: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...init,

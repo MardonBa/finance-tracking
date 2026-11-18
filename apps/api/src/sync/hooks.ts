@@ -1,10 +1,21 @@
 /**
  * Seams for logic owned by the @ft/core tracks. Sync stores raw, trimmed Plaid
  * data correctly on its own; these hooks let classification (core-flows) and
- * snapshot rebuild/downsampling (core-balances) run on top later without
- * changing the sync code. Each is a no-op until wired up.
+ * snapshot rebuild/downsampling (core-balances) run on top without changing
+ * the sync code.
+ *
+ * - afterDailySnapshots: rebuild estimated history for newly connected
+ *   accounts, manual balances/snapshots from their transactions, weekly
+ *   downsampling after 90 days (sync/balanceMaintenance.ts).
+ * - afterTransactionsSynced: deliberately a no-op. Categories, buckets,
+ *   transfer and refund matches are computed by core at query time from the
+ *   raw transactions plus the user's overrides, rules and confirmed links
+ *   (flows/ledger.ts), so nothing derived needs persisting after a sync, and
+ *   a changed rule or a pending -> posted swap never leaves stale stored
+ *   classifications behind. Only user decisions are stored (by actions).
  */
 import type { AppEnv } from "../env.ts";
+import { maintainSnapshots } from "./balanceMaintenance.ts";
 
 export interface TransactionsSyncedEvent {
   itemId: string;
@@ -29,5 +40,10 @@ export interface SyncHooks {
 
 export const syncHooks: SyncHooks = {
   async afterTransactionsSynced() {},
-  async afterDailySnapshots() {},
+  async afterDailySnapshots(env, event) {
+    const r = await maintainSnapshots(env, event.date);
+    if (r.upserted || r.deleted || r.balancesFixed) {
+      console.log(`snapshots ${event.date}: ${r.upserted} written, ${r.deleted} downsampled away, ${r.balancesFixed} manual balances fixed, rebuilt ${r.rebuilt.length} account(s)`);
+    }
+  },
 };

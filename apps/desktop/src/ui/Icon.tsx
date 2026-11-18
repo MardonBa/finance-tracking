@@ -23,6 +23,15 @@ const paths = {
     "M7 11a5 5 0 0110 0v2M12 11v4a6 6 0 01-1 3M9 12v2a8 8 0 01-1 4M15 13a10 10 0 01-1 6M4 9a8.5 8.5 0 0116 0",
   chevronDown: "M6 9l6 6 6-6",
   search: "M11 4a7 7 0 100 14 7 7 0 000-14zM20 20l-4-4",
+  // Accounts, sync, security (onboarding-overview track)
+  refresh: "M20 12a8 8 0 11-2.3-5.6M20 4v5h-5",
+  shield: "M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6zM9 12l2 2 4-4",
+  bank: "M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18",
+  cash: "M3 7h18v10H3zM12 10a2 2 0 100 4 2 2 0 000-4z",
+  pencil: "M4 20h4L19 9l-4-4L4 16zM14 6l4 4",
+  trash: "M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13",
+  external: "M14 4h6v6M20 4l-9 9M18 14v6H4V6h6",
+  chevronRight: "M9 6l6 6-6 6",
   // Areas
   overview: "M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z",
   spending: "M4 20V10M10 20V4M16 20v-7M22 20H2",

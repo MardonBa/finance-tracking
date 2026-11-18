@@ -3,6 +3,7 @@ import { memo, type Dispatch } from "react";
 import { DockItem } from "../ui/components.tsx";
 import { AREA_INFO, AREAS, shortcutFor } from "./areas.ts";
 import type { WMAction, WMState } from "./wm/state.ts";
+import { openSecuritySheet } from "../settings/SecuritySheet.tsx";
 
 export const Dock = memo(function Dock({ state, dispatch }: { state: WMState; dispatch: Dispatch<WMAction> }) {
   return (
@@ -22,6 +23,8 @@ export const Dock = memo(function Dock({ state, dispatch }: { state: WMState; di
             />
           );
         })}
+        <span className="wm-dock__divider" aria-hidden="true" />
+        <DockItem icon="shield" label="Security" state="closed" onClick={openSecuritySheet} />
       </div>
     </nav>
   );
