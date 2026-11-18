@@ -24,10 +24,10 @@ Steps only you can do: real Touch ID, browser sign-in, real banks, production. E
 ## Budgets & goals
 
 - [ ] In the Tauri app (`npm run dev`), add a goal picture: it is saved under the app data dir (`~/Library/Application Support/<bundle id>/goal-pictures/`) and still shows after a restart. Delete that folder: the card shows the placeholder and "Add picture".
-- [ ] Turn on System Settings → Accessibility → Display → Reduce motion, cross a goal milestone, open Goals: the celebration fades in with no confetti.
-- [ ] Drag goal priorities with a trackpad: the card lifts, the others slide, the blue drop line shows, and the projected dates change while dragging. Then do the same with Tab + arrow keys and VoiceOver on (it announces "moved to priority N").
-- [ ] Each celebration plays once: cross a milestone, open Goals (it plays), close and reopen Goals and the Overview (it doesn't play again).
-- [ ] Click a budget bar, a pending extension, a trip month and a history cell: the Transactions window lists exactly the transactions and its total matches the number clicked (needs the transactions-spending window merged).
+- [x] Turn on System Settings → Accessibility → Display → Reduce motion, cross a goal milestone, open Goals: the celebration fades in with no confetti.
+- [x] Drag goal priorities with a trackpad: the card lifts, the others slide, the blue drop line shows, and the projected dates change while dragging. Then do the same with Tab + arrow keys and VoiceOver on (it announces "moved to priority N").
+- [x] Each celebration plays once: cross a milestone, open Goals (it plays), close and reopen Goals and the Overview (it doesn't play again).
+- [x] Click a budget bar, a pending extension, a trip month and a history cell: the Transactions window lists exactly the transactions and its total matches the number clicked (needs the transactions-spending window merged).
 ## Transactions & spending
 - [ ] With real data: click a few Sankey flows, category bars, heatmap days and top-merchant totals in Spending and check the Transactions total matches what you clicked and the transactions look right.
 - [ ] Check that merchant grouping looks sensible on your real merchants; try one merge and one separate, then Undo.
@@ -47,13 +47,13 @@ Steps only you can do: real Touch ID, browser sign-in, real banks, production. E
 
 ## Onboarding & overview
 - [x] First run in the real app: after "Set up Touch ID", the "Add your banks" step opens. Check "Skip for now" lands on the desktop with no banks.
-- [ ] Connect a bank (Sandbox First Platypus, `user_good` / `pass_good`): Plaid opens in Safari/your default browser, the app comes forward on `financetracker://plaid-complete`, and the accounts found are listed. Rename one, hide one, change a type, Save → the before → after card → the Overview shows it.
-- [ ] Platypus OAuth Bank: same, through the bank's OAuth page.
-- [ ] Close the Plaid tab halfway → "Cancel" in the app → "Nothing was saved" → "Try again" opens a fresh Plaid session.
-- [ ] Connect the same bank twice → the duplicate warning; try both "Discard" and "Keep" (matching accounts hidden).
-- [ ] While a new bank imports, its row says "Importing transactions…" and turns into "Up to date" without reopening anything.
-- [ ] `/sandbox/item/reset_login` on a connected item (dev route `POST /dev/sandbox/reset-login`), quit and relaunch → right after Touch ID, the prompt names the bank and "Needs you to sign in again"; Reconnect → Plaid update mode in the browser → back in the app, the bank is fixed and history kept. Dismiss it once instead → the accounts show "Out of date · …" and net worth says it includes out-of-date accounts.
-- [ ] Refresh on the Overview: progress, then "Up to date" or the bank's error with Reconnect.
+- [x] Connect a bank (Sandbox First Platypus, `user_good` / `pass_good`): Plaid opens in Safari/your default browser, the app comes forward on `financetracker://plaid-complete`, and the accounts found are listed. Rename one, hide one, change a type, Save → the before → after card → the Overview shows it.
+- [x] Platypus OAuth Bank: same, through the bank's OAuth page.
+- [x] Close the Plaid tab halfway → "Cancel" in the app → "Nothing was saved" → "Try again" opens a fresh Plaid session.
+- [x] Connect the same bank twice → the duplicate warning; try both "Discard" and "Keep" (matching accounts hidden).
+- [x] While a new bank imports, its row says "Importing transactions…" and turns into "Up to date" without reopening anything.
+- [x] `/sandbox/item/reset_login` on a connected item (dev route `POST /dev/sandbox/reset-login`), quit and relaunch → right after Touch ID, the prompt names the bank and "Needs you to sign in again"; Reconnect → Plaid update mode in the browser → back in the app, the bank is fixed and history kept. Dismiss it once instead → the accounts show "Out of date · …" and net worth says it includes out-of-date accounts.
+- [x] Refresh on the Overview: progress, then "Up to date" or the bank's error with Reconnect.
 - [ ] Overview at its default size on your screen: everything visible without scrolling; the alerts strip only shows when something needs dealing with.
 - [ ] Each Overview element opens the right place: spending → Spending / its transactions, a transaction → Transactions, budget → Budgets, goal → Goals, net worth → Trajectory, an account → its details.
 - [ ] Add account → Manual account "Wallet" with $40 → add, edit, delete a transaction with a category and note; the balance and net worth follow.
