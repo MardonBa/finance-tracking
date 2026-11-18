@@ -1,0 +1,29 @@
+{
+  "name": "@ft/api",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler d1 migrations apply DB --local --env dev && wrangler dev --env dev",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local --env dev",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
+    "test": "vitest run -c vitest.node.config.ts && vitest run -c vitest.workers.config.ts"
+  },
+  "dependencies": {
+    "@ft/core": "*",
+    "drizzle-orm": "^0.45.4",
+    "hono": "^4.13.19",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.8.4",
+    "@cloudflare/workers-types": "^5.20261118.1",
+    "@types/node": "^22",
+    "drizzle-kit": "^0.31.11",
+    "plaid": "^51.0.0",
+    "typescript": "~6.0.3",
+    "vitest": "^4.1.12",
+    "wrangler": "^4.162.0"
+  }
+}

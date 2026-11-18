@@ -1,0 +1,65 @@
+# Finance Tracker API (Cloudflare Worker).
+#
+# ALWAYS pass an environment: `--env dev` or `--env production`.
+# Bindings are not inherited between environments, so each env has its own
+# D1 database, R2 bucket, vars and secrets. Dev can never reach production:
+# the dev Worker only has the dev bindings, and production secrets are set
+# only with `wrangler secret put --env production` (never in .dev.vars).
+#
+# The top level deliberately has NO bindings: a deploy without --env would
+# produce a Worker that refuses every request (see src/env.ts).
+
+name = "ft-api"
+main = "src/index.ts"
+compatibility_date = "2026-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+# ------------------------------------------------------------------ dev
+[env.dev]
+name = "ft-api-dev"
+workers_dev = true
+
+[env.dev.vars]
+ENVIRONMENT = "dev"
+PLAID_ENV = "sandbox"
+# IANA zone used to compute "today" for the user (cron, queries).
+USER_TIME_ZONE = "America/New_York"
+
+[[env.dev.d1_databases]]
+binding = "DB"
+database_name = "ft-dev"
+database_id = "7ab38311-1551-4024-85de-84aa07ec38a0"
+migrations_dir = "migrations"
+
+[[env.dev.r2_buckets]]
+binding = "BACKUPS"
+bucket_name = "ft-backups-dev"
+
+[env.dev.triggers]
+# Daily sync, 11:00 UTC (early morning in US time zones).
+crons = ["0 11 * * *"]
+
+# ------------------------------------------------------------------ production
+[env.production]
+name = "ft-api"
+workers_dev = true
+
+[env.production.vars]
+ENVIRONMENT = "production"
+PLAID_ENV = "production"
+USER_TIME_ZONE = "America/New_York"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "ft-prod"
+# PLACEHOLDER (Phase 4): create with `wrangler d1 create ft-prod` and paste its id here.
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+[[env.production.r2_buckets]]
+binding = "BACKUPS"
+# PLACEHOLDER (Phase 4): create with `wrangler r2 bucket create ft-backups-prod`.
+bucket_name = "ft-backups-prod"
+
+[env.production.triggers]
+crons = ["0 11 * * *"]

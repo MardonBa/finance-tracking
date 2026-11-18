@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "allowImportingTsExtensions": true
+  },
+  "include": ["vitest.*.ts", "drizzle.config.ts", "seed/**/*.ts", "test/node/**/*.ts", "scripts/**/*.ts"]
+}
