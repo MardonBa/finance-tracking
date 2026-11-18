@@ -57,7 +57,7 @@ export function SpendingWindow({ initialMonth }: { initialMonth?: string } = {})
           </Button>
         </div>
         <span className="tx-spacer" />
-        <label className="sp-usual">
+        <div className="sp-usual">
           <span className="tx-muted tx-small">Compare with usual =</span>
           <SegmentedControl
             size="sm"
@@ -70,7 +70,7 @@ export function SpendingWindow({ initialMonth }: { initialMonth?: string } = {})
               { value: "3", label: "3 months" },
             ]}
           />
-        </label>
+        </div>
       </header>
       <Summary month={month} usualMonths={usualMonths} />
       <Tabs label="Spending views" tabs={TABS} value={tab} onChange={setTab} />
