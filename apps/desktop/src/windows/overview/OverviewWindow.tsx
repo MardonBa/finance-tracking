@@ -25,6 +25,7 @@ import { computeAlerts, type OverviewAlert } from "./alerts.ts";
 import { useLowBalanceWarnings, warningSentence } from "../recurring/warnings.tsx";
 import { colorOfCategory, useCategoryColors } from "../../data/useCategoryColors.ts";
 import { GoalCelebrations } from "../goals/GoalCelebrations.tsx";
+import { explainWithAssistant, type ExplainFigure } from "../assistant/explain.ts";
 import { GoalPicture } from "../goals/GoalPicture.tsx";
 import { goalColor } from "../goals/goalColors.ts";
 import "../../dialogs/dialogs.css";
@@ -109,11 +110,14 @@ function Section({
   children,
   loading,
   error,
+  explain,
 }: {
   title: string;
   className: string;
   onOpen?: () => void;
   openLabel?: string;
+  /** Adds an "Explain with the assistant" button (§16) for the card's main figure. */
+  explain?: ExplainFigure;
   children: ReactNode;
   loading?: boolean;
   /** The card's data couldn't load: say so instead of showing an empty card. */
@@ -123,8 +127,19 @@ function Section({
     <section className={`ov-card ${className}`} aria-busy={loading || undefined}>
       <header className="ov-card__header">
         <h3 className="ov-card__title">{title}</h3>
+        {explain && (
+          <button
+            type="button"
+            className="ov-card__open ov-card__explain"
+            onClick={() => explainWithAssistant(explain)}
+            aria-label={`Explain ${explain.label} with the assistant`}
+            title={`Explain ${explain.label} with the assistant`}
+          >
+            <Icon name="assistant" size={14} />
+          </button>
+        )}
         {onOpen && (
-          <button type="button" className="ov-card__open" onClick={onOpen} aria-label={openLabel ?? `Open ${title}`}>
+          <button type="button" className="ov-card__open" onClick={onOpen} aria-label={openLabel ?? `Open ${title}`} title={openLabel ?? `Open ${title}`}>
             <Icon name="chevronRight" size={14} />
           </button>
         )}
@@ -325,7 +340,14 @@ function SpendingCard({ summary, byCat, month, today, staleCount }: { summary: Q
   const params = { from: monthStart(month), to: today, level: "primary" };
   const openSpending = () => openItem({ area: "spending" });
   return (
-    <Section title="Spending this month" className="ov-spending" onOpen={openSpending} openLabel="Open Spending" loading={!s && !summary.error}>
+    <Section
+      title="Spending this month"
+      className="ov-spending"
+      onOpen={openSpending}
+      openLabel="Open Spending"
+      loading={!s && !summary.error}
+      explain={{ query: "spending.monthlySummary", params: { month, usualMonths: 3 }, figureId: "spending", label: "this month's spending" }}
+    >
       <button
         type="button"
         className="ov-big ov-click"

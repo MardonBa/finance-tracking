@@ -287,16 +287,19 @@ export interface DockItemProps {
   label: string;
   /** Shortcut hint shown in the tooltip, e.g. "⌘1". */
   shortcut?: string;
+  /** Extra tooltip text, e.g. the question the window answers. */
+  description?: string;
   state: "closed" | "open" | "minimized";
   focused?: boolean;
   onClick: () => void;
   disabled?: boolean;
 }
 
-export function DockItem({ icon, label, shortcut, state, focused, onClick, disabled }: DockItemProps) {
+export function DockItem({ icon, label, shortcut, description, state, focused, onClick, disabled }: DockItemProps) {
   const status = state === "minimized" ? "minimised" : state === "open" ? "open" : "";
+  const tip = `${shortcut ? `${label} (${shortcut})` : label}${description ? ` · ${description}` : ""}`;
   return (
-    <Tooltip label={shortcut ? `${label} (${shortcut})` : label} placement="top">
+    <Tooltip label={tip} placement="top">
       <button
         type="button"
         className={cx("ui-raised", "ui-dock-item", `is-${state}`, focused && "is-focused")}

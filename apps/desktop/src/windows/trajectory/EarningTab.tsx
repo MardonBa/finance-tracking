@@ -8,10 +8,10 @@ import { monthOf } from "@ft/core";
 import { openDrillDown } from "../../data/drilldown.ts";
 import { useQuery } from "../../data/hooks.ts";
 import { Chart } from "../../ui/Chart.tsx";
-import { EmptyState } from "../../ui/components.tsx";
 import { money, pct, todayIso } from "../shared/format.ts";
 import { earningOption, periodLabel } from "./charts.ts";
 import type { EarningRow, Grain, MonthTotals } from "./types.ts";
+import { ConnectEmptyState } from "../shared/ConnectEmptyState.tsx";
 
 /** Opens the transactions behind one income or spending figure. */
 export function drillEarning(period: string, which: "income" | "spending", cashFlowParams: unknown) {
@@ -36,7 +36,7 @@ export function EarningTab({ grain }: { grain: Grain }) {
 
   if (flow.error && !flow.data) return <p className="rti-error">Couldn't load income and spending: {flow.error.message}</p>;
   if (!rows) return <p className="rti-note">Loading…</p>;
-  if (rows.length === 0) return <EmptyState icon="spending" title="No income or spending yet" description="Once transactions import, income and spending show here month by month." />;
+  if (rows.length === 0) return <ConnectEmptyState icon="spending" title="No income or spending yet" description="Once transactions import, income and spending show here month by month." />;
 
   const onClick = (p: unknown) => {
     const e = p as { dataIndex: number; seriesName: string };

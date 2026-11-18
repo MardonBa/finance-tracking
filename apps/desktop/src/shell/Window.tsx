@@ -191,7 +191,7 @@ export const Window = memo(function Window({ win, focused, zIndex, viewport, tok
           <span className="wm-window__icon">
             <Icon name={info.icon} size={16} />
           </span>
-          <h2 id={titleId} className="wm-window__title">
+          <h2 id={titleId} className="wm-window__title" title={info.question}>
             {info.title}
           </h2>
           <div className="wm-window__controls">

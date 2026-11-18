@@ -8,11 +8,13 @@ import type { Investments } from "@ft/core";
 import { useQuery } from "../../data/hooks.ts";
 import { Chart } from "../../ui/Chart.tsx";
 import { OTHER_COLOR } from "../../ui/colorMap.ts";
-import { Card, EmptyState, SegmentedControl, StatNumber, Tabs } from "../../ui/components.tsx";
+import { Card, SegmentedControl, StatNumber, Tabs } from "../../ui/components.tsx";
 import { color, seriesColors } from "../../ui/tokens.ts";
 import { longDate, money, moneyShort, pct, shortDate } from "../shared/format.ts";
 import { ActivityTab } from "./ActivityTab.tsx";
 import "../shared/shared.css";
+import { ExplainButton } from "../shared/ExplainButton.tsx";
+import { ConnectEmptyState } from "../shared/ConnectEmptyState.tsx";
 
 type Tab = "holdings" | "allocation" | "performance" | "activity";
 const TABS = [
@@ -27,7 +29,7 @@ type AllocationValue = { totalCents: number; byType: Investments.AllocationSlice
 type PerformanceValue = { accounts: Investments.Performance[]; total: Investments.Performance };
 type HistoryValue = { accounts: Investments.HoldingsHistory[] };
 
-const NONE = <EmptyState icon="investments" title="No investment accounts yet" description="Connect a brokerage or retirement account to see holdings, allocation and performance." />;
+const NONE = <ConnectEmptyState icon="investments" title="No investment accounts yet" description="Connect a brokerage or retirement account to see holdings, allocation and performance." />;
 
 function HoldingsTab() {
   const q = useQuery<HoldingsValue>("investments.holdings", {});
@@ -249,7 +251,11 @@ export function InvestmentsWindow() {
   return (
     <div className="rti-window">
       <div className="rti-window__top">
-        <Tabs label="Investment views" tabs={TABS} value={tab} onChange={setTab} />
+        <div className="rti-toolbar">
+          <Tabs label="Investment views" tabs={TABS} value={tab} onChange={setTab} />
+          <span className="rti-toolbar__spacer" />
+          <ExplainButton figure={{ query: "investments.performance", params: {}, label: "my investments' performance" }} />
+        </div>
       </div>
       <div className="rti-scroll" role="tabpanel" aria-labelledby={`tab-${tab}`}>
         {tab === "holdings" && <HoldingsTab />}

@@ -6,9 +6,10 @@
 import { useState } from "react";
 import type { Investments } from "@ft/core";
 import { useQuery } from "../../data/hooks.ts";
-import { Button, EmptyState, Input, StatNumber } from "../../ui/components.tsx";
+import { Button, Input, StatNumber } from "../../ui/components.tsx";
 import { longDate, money } from "../shared/format.ts";
 import { ReviewAndConfirm } from "../shared/ReviewAndConfirm.tsx";
+import { ConnectEmptyState } from "../shared/ConnectEmptyState.tsx";
 
 type ActivityValue = { rows: Investments.ActivityRow[]; dividendIncomeCents: number; feesCents: number; tradeFeesCents: number };
 
@@ -62,7 +63,7 @@ export function ActivityTab() {
   if (!q.data) return <p className="rti-note">Loading…</p>;
   const v = q.data.value;
   if (v.rows.length === 0)
-    return <EmptyState icon="investments" title="No investment activity yet" description="Buys, sells, dividends and fees from your investment accounts appear here after the next sync." />;
+    return <ConnectEmptyState icon="investments" title="No investment activity yet" description="Buys, sells, dividends and fees from your investment accounts appear here after the next sync." />;
   return (
     <div className="rti-stack">
       <div className="rti-row">

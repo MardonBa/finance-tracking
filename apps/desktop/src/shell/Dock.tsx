@@ -17,6 +17,7 @@ export const Dock = memo(function Dock({ state, dispatch }: { state: WMState; di
               icon={AREA_INFO[area].icon}
               label={AREA_INFO[area].title}
               shortcut={shortcutFor(area)}
+              description={AREA_INFO[area].question}
               state={!win ? "closed" : win.minimized ? "minimized" : "open"}
               focused={state.focused === area}
               onClick={() => dispatch({ type: "open", area })}

@@ -7,9 +7,9 @@ import type { Spending } from "@ft/core";
 import { Chart } from "../../ui/Chart.tsx";
 import { categoryColor } from "../../ui/colorMap.ts";
 import { color } from "../../ui/tokens.ts";
-import { EmptyState } from "../../ui/components.tsx";
 import { money } from "../transactions/format.ts";
 import { useFigures } from "./drill.ts";
+import { ConnectEmptyState } from "../shared/ConnectEmptyState.tsx";
 
 type Sankey = Spending.Sankey;
 
@@ -85,7 +85,7 @@ export function SankeyPanel({ month }: { month: string }) {
   const v = q.value;
   if (!v) return <p className="tx-muted">Loading…</p>;
   if (v.links.length === 0)
-    return <EmptyState icon="spending" title="Nothing came in or went out this month" description="Pick an earlier month, or connect a bank to see where your money goes." />;
+    return <ConnectEmptyState icon="spending" title="Nothing came in or went out this month" description="Pick an earlier month, or connect a bank to see where your money goes." />;
   const onClick = (p: unknown) => {
     const fig = sankeyClickFigure(v, p as Parameters<typeof sankeyClickFigure>[1]);
     if (fig) q.drill(fig)?.();
