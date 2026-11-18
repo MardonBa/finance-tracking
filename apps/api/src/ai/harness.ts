@@ -9,7 +9,7 @@ import { ActionError, queryRegistry, type ActionPreview, type Account } from "@f
 import type { AppEnv } from "../env.ts";
 import { getDb, loadSlices } from "../db/data.ts";
 import { NotFound, previewAction, runQuery, todayFor } from "../routes/registry.ts";
-import { GeminiRateLimitError, geminiClient, type Content, type FunctionCall, type GenerateRequest, type Part } from "./gemini.ts";
+import { GeminiError, GeminiRateLimitError, geminiClient, type Content, type FunctionCall, type GenerateRequest, type Part } from "./gemini.ts";
 import { accountLabels, forModel, scrubString, type AccountLabels } from "./privacy.ts";
 import { builtInPrompt, systemPrompt } from "./prompts.ts";
 import { checkBudget, cooldownFrom, cooldownUntil, limitsFor, recordRequest, setCooldown, type Blocked } from "./rateLimit.ts";
@@ -20,6 +20,12 @@ export const MAX_TOOL_ROUNDS = 6;
 /** Figures per tool result that get a citation tag. */
 const MAX_FIGURES_PER_RESULT = 60;
 
+/**
+ * Code defaults; wrangler.toml sets GEMINI_MODEL / GEMINI_FALLBACK_MODEL.
+ * TODO(revisit): in Nov 2026 Google returns 404 "no longer available to new users" for the
+ * 2.5 models on this key, so wrangler.toml uses gemini-3.8-flash and gemini-3.5-flash-lite
+ * (Google's suggested replacements). A 404 also falls through to the fallback model.
+ */
 export const DEFAULT_MODEL = "gemini-2.5-flash";
 export const DEFAULT_FALLBACK_MODEL = "gemini-2.5-flash-lite";
 
@@ -171,6 +177,7 @@ async function generate(env: AppEnv, request: GenerateRequest, nowMs: () => numb
   const client = geminiClient(env.GEMINI_API_KEY);
   const limits = limitsFor(env);
   let lastBlock: Blocked | null = null;
+  let lastError: unknown = null;
   for (const model of primary === fallback ? [primary] : [primary, fallback]) {
     const cooled = await cooldownUntil(db, model, nowMs());
     if (cooled) {
@@ -183,13 +190,19 @@ async function generate(env: AppEnv, request: GenerateRequest, nowMs: () => numb
     try {
       return { model, response: await client.generate(model, request) };
     } catch (e) {
+      // A retired model ("no longer available", 404) also falls through to the fallback.
+      if (e instanceof GeminiError && e.status === 404) {
+        lastError = e;
+        continue;
+      }
       if (!(e instanceof GeminiRateLimitError)) throw e;
       const until = cooldownFrom(nowMs(), e.retryAfterMs, e.perDay);
       await setCooldown(db, model, until);
       lastBlock = { source: "gemini", scope: e.perDay ? "day" : "minute", retryAt: until };
     }
   }
-  throw new RateLimited(lastBlock!);
+  if (lastBlock) throw new RateLimited(lastBlock);
+  throw lastError ?? new GeminiError("No Gemini model available", 502);
 }
 
 /** Guidance for "Explain this": read the same query the chart used, then the transactions behind the figure. */
@@ -224,7 +237,8 @@ export async function runChat(env: AppEnv, rawRequest: unknown, nowMs: () => num
 
   const system = systemPrompt(today);
   const decls = declarations();
-  const generationConfig = { temperature: 0.2 };
+  // Default sampling: Gemini 3 models are tuned for the default temperature (lower values can loop).
+  const generationConfig = {};
   const sent: ChatResponse["sent"] = {
     systemPrompt: system,
     tools: {

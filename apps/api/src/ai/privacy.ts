@@ -32,7 +32,6 @@ export const DROPPED_KEYS: ReadonlySet<string> = new Set([
   "ownerNames",
   "accountNumber",
   "routingNumber",
-  "contributions",
 ]);
 
 const EMAIL = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;

@@ -7,7 +7,7 @@ import { env } from "cloudflare:workers";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Account, Mutation, Transaction } from "@ft/core";
 import worker from "../../src/index.ts";
-import { GeminiRateLimitError, setGeminiClientForTests, type GenerateRequest } from "../../src/ai/gemini.ts";
+import { GeminiError, GeminiRateLimitError, setGeminiClientForTests, type GenerateRequest } from "../../src/ai/gemini.ts";
 import type { ChatResponse } from "../../src/ai/harness.ts";
 import { getDb, mutationStatements } from "../../src/db/data.ts";
 import { addCredential, count, loadBasicFixture, request, rows } from "./helpers.ts";
@@ -62,7 +62,7 @@ describe("POST /ai/chat: the tool loop", () => {
 
     expect(fake.requests).toHaveLength(2);
     expect(body.rounds).toBe(1);
-    expect(body.model).toBe("gemini-2.5-flash");
+    expect(body.model).toBe(env.GEMINI_MODEL);
     expect(body.text).toMatch(/\$\d+\.\d\d \[F\d+\]/);
     const [tag] = /F\d+/.exec(body.text)!;
     const cited = body.citations[tag];
@@ -332,16 +332,35 @@ describe("rate limits", () => {
     expect(Date.parse(body.retryAt) - Date.now()).toBeLessThanOrEqual(86_400_000);
   });
 
-  it("falls back to gemini-2.5-flash-lite when Flash hits its quota", async () => {
+  it("falls back to the fallback model when the main model hits its quota", async () => {
     useGemini([
       (_req, model) => {
-        if (model === "gemini-2.5-flash") throw new GeminiRateLimitError("quota", 37_000, false);
+        if (model === env.GEMINI_MODEL) throw new GeminiRateLimitError("quota", 37_000, false);
         return reply([{ text: "from lite" }]);
       },
     ]);
     const body = (await (await chat(ask("hi"))).json()) as ChatResponse;
-    expect(fake.requests.map((r) => r.model)).toEqual(["gemini-2.5-flash", "gemini-2.5-flash-lite"]);
-    expect(body).toMatchObject({ text: "from lite", model: "gemini-2.5-flash-lite" });
+    expect(fake.requests.map((r) => r.model)).toEqual([env.GEMINI_MODEL, env.GEMINI_FALLBACK_MODEL]);
+    expect(body).toMatchObject({ text: "from lite", model: env.GEMINI_FALLBACK_MODEL });
+  });
+
+  it("falls back when the main model is retired (404), and reports a clear error when none is available", async () => {
+    useGemini([
+      (_req, model) => {
+        if (model === env.GEMINI_MODEL) throw new GeminiError("Gemini error 404: no longer available to new users", 404);
+        return reply([{ text: "from fallback" }]);
+      },
+    ]);
+    expect(((await (await chat(ask("hi"))).json()) as ChatResponse).model).toBe(env.GEMINI_FALLBACK_MODEL);
+
+    useGemini([
+      () => {
+        throw new GeminiError("Gemini error 404: gone", 404);
+      },
+    ]);
+    const res = await chat(ask("hi"));
+    expect(res.status).toBe(502);
+    expect(((await res.json()) as { error: string }).error).toBe("ai_unavailable");
   });
 
   it("when both models are limited: 429 with Gemini's retryDelay, and no more calls until then", async () => {
