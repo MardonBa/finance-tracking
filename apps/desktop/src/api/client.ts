@@ -9,11 +9,24 @@ import type { ActionPreview, Figure } from "@ft/core";
 export const API_URL: string = import.meta.env.VITE_API_URL ?? "http://localhost:8787";
 
 /**
- * In `npm run dev` only: the DEV_APP_TOKEN registered by `npm run reset:dev`,
- * until Google sign-in (backend track) issues real tokens. Always undefined in
- * production builds.
+ * Dev-only bypass of Google sign-in and Touch ID: the DEV_APP_TOKEN registered
+ * by `npm run reset:dev`. Used ONLY in dev builds AND when the explicit flag
+ * VITE_DEV_AUTH_BYPASS=1 is set (e.g. `VITE_DEV_AUTH_BYPASS=1 npm run dev`).
+ * Always undefined in production builds.
+ * TODO(revisit): sync-dev-vars doesn't write the flag; pass it on the command line.
  */
-export const DEV_APP_TOKEN: string | undefined = import.meta.env.DEV ? import.meta.env.VITE_DEV_APP_TOKEN || undefined : undefined;
+export const DEV_APP_TOKEN: string | undefined =
+  import.meta.env.DEV && import.meta.env.VITE_DEV_AUTH_BYPASS === "1" ? import.meta.env.VITE_DEV_APP_TOKEN || undefined : undefined;
+
+let onUnauthorized: (() => void) | null = null;
+
+/**
+ * Called on any 401 from the API (revoked or expired credential): the app
+ * gate deletes the credential and goes back to Google sign-in (§2).
+ */
+export function setUnauthorizedHandler(handler: (() => void) | null): void {
+  onUnauthorized = handler;
+}
 
 export class ApiError extends Error {
   readonly status: number;
@@ -40,6 +53,7 @@ async function call<T>(path: string, token: string, init: RequestInit = {}): Pro
     headers: { "content-type": "application/json", authorization: `Bearer ${token}`, ...init.headers },
   });
   if (!res.ok) {
+    if (res.status === 401) onUnauthorized?.();
     const body = res.status === 401 ? "" : await res.text();
     throw new ApiError(res.status, body || res.statusText);
   }
@@ -60,4 +74,9 @@ export function runAction(token: string, name: string, input: unknown): Promise<
 
 export function undoAction(token: string, logId: string): Promise<{ undone: string }> {
   return call(`/actions/${encodeURIComponent(logId)}/undo`, token, { method: "POST" });
+}
+
+/** Revoke the current credential (`{ all: true }`: every credential, e.g. a lost laptop). */
+export function revokeCredential(token: string, opts: { all?: boolean } = {}): Promise<{ revoked: number }> {
+  return call("/auth/revoke", token, { method: "POST", body: JSON.stringify(opts.all ? { all: true } : {}) });
 }

@@ -1,0 +1,17 @@
+.pixel-waves {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  /* Same cream as the scene's sky, so nothing flashes before the first fit. */
+  background: var(--surface-cream);
+  z-index: var(--z-desktop);
+  pointer-events: none;
+}
+
+.pixel-waves__scene {
+  position: absolute;
+  bottom: 0;
+  display: block;
+  shape-rendering: crispEdges;
+  image-rendering: pixelated;
+}

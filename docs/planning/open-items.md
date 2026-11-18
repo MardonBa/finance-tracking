@@ -28,3 +28,15 @@ Defaults and placeholders chosen while building autonomously. Each has a matchin
 - **Investment performance start:** the account's value on its first holdings day (on or after the connection day) counts as money put in, because earlier transfers aren't known (`investments/investments.ts`).
 - **Manual account starting balance:** stored as a transaction `<accountId>__opening` with a confirmed `transfer` override so it is neither spending nor income; core-flows may want to recognise it explicitly (`actions/accounts/accountActions.ts`).
 - **Migration numbering:** the trajectory tables are in `apps/api/migrations/0050_trajectory_assumptions.sql`, with journal entry `0050_trajectory_assumptions` and `meta/0050_snapshot.json`. Reconcile the drizzle journal with the backend track's migrations at merge.
+## Phase 1: shell
+
+- **Orange and pink shades (follow-up to the Phase 0 item):** settled for now in `apps/desktop/src/ui/tokens.css` and checked by `src/ui/contrast.test.ts`. Text shades `--orange-700 #9a4416` / `--pink-700 #a03158` pass 4.5:1 on every cream; chart shades `--orange-600 #c2601f` / `--pink-600 #c74a78` pass 3:1. The 500/300/100 shades are fills only. Confirm the look in the styleguide (`#styleguide` in a dev build).
+- **Keychain access control:** the credential item has no user-presence ACL (that needs a signed app with a keychain-access-groups entitlement). Reads are gated in Rust: `get_credential` refuses unless Touch ID unlocked the session (`src-tauri/src/native.rs`).
+- **Google client secret in the binary:** baked in at build time from `.env` for the Desktop OAuth client, which Google treats as non-confidential; PKCE protects the code (`src-tauri/src/oauth.rs`).
+- **Sign-in timeout:** the loopback listener waits 5 minutes for the browser (`src-tauri/src/oauth.rs`).
+- **Relock granularity:** the 72h check runs every 30 s, so the relock can fire up to 30 s late (`src-tauri/src/relock.rs`).
+- **Deep links under `tauri dev`:** macOS only registers `financetracker://` for a bundled app; test deep links with `tauri build` (`src-tauri/src/lib.rs`).
+- **Window sizes after the app window shrinks:** windows shrink to fit and stay that size when the app window grows again (`src/shell/wm/state.ts`).
+- **Category colours:** 6 named colours, categories under 2% of the total share "Other" (`src/ui/colorMap.ts`).
+- **Dev auth bypass:** `VITE_DEV_AUTH_BYPASS=1` must be passed on the command line; `sync-dev-vars` doesn't write it (`src/api/client.ts`).
+- **"Add a bank" before Phase 2:** shows a placeholder dialog until the onboarding track registers the `add-banks` step (`src/auth/AuthGate.tsx`).

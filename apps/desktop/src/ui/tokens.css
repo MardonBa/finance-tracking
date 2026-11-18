@@ -1,11 +1,14 @@
 /*
- * Design tokens (§15). The ONLY place colours, spacing and type sizes are
- * defined; components use these variables and never one-off values.
+ * Design tokens (§15). With tokens.ts (its mirror for JS: charts, colour
+ * map) the ONLY place colours are defined; components use these variables
+ * and never one-off values (enforced by no-hex.test.ts). tokens.test.ts
+ * checks this file and tokens.ts agree, and contrast.test.ts checks every
+ * text/background pair against WCAG AA.
  * Light only: there is no dark mode.
  *
  * The palette starts from the pixel-waves background: cream surfaces, ocean
- * blue accent, navy text. Orange and pink are proposed shades for highlights,
- * chart series and warnings (to settle with a style sample, §15 Open).
+ * blue accent, navy text, with oranges and pinks for highlights, chart
+ * series and warnings.
  */
 :root {
   color-scheme: light;
@@ -21,22 +24,27 @@
   --accent-blue-hover: #17407f;
   --accent-blue-pressed: #123366;
   --accent-blue-soft: #dbe5f5;
+  --blue-500: #3f7fd0; /* chart series; from the background's wave */
 
   /* ---- Text: navy */
   --text-strong: #14233f;
   --text: #33435f;
   --text-muted: #55627a;
+  --text-disabled: #8a8f99; /* disabled controls only (WCAG exempts them) */
   --text-on-accent: #ffffff;
 
-  /* ---- Orange (proposed): highlights, chart series, "running hot"
-     TODO(revisit): exact orange/pink shades to settle with a style sample (§15 Open). */
-  --orange-700: #b4531b;
+  /* ---- Orange: highlights, chart series, "running hot".
+     700 is text-safe (>= 4.5:1 on every cream); 600 is chart-safe (>= 3:1);
+     500/300/100 are fills and highlights only. Checked by contrast.test.ts. */
+  --orange-700: #9a4416;
+  --orange-600: #c2601f;
   --orange-500: #e07b39;
   --orange-300: #f2a96b;
   --orange-100: #fbe3cc;
 
-  /* ---- Pink (proposed): highlights, chart series, celebrations */
-  --pink-700: #b23a64;
+  /* ---- Pink: highlights, chart series, celebrations (same rules as orange) */
+  --pink-700: #a03158;
+  --pink-600: #c74a78;
   --pink-500: #e0668f;
   --pink-300: #f19db8;
   --pink-100: #fbdfe8;
@@ -48,7 +56,7 @@
   --status-danger-bg: #f8dcd8;
   --status-ok: #2f6b4f;
   --status-ok-bg: #dcefe4;
-  --neutral-other: #b9b2a3; /* shared "Other" shade for small categories */
+  --neutral-other: #8a7f6a; /* shared "Other" shade for small categories (>= 3:1 on cream) */
 
   /* ---- Lines and raised look (hard offset shadow that collapses on press) */
   --border: #14233f;
@@ -60,7 +68,11 @@
   --shadow-raised: var(--raise-offset) var(--raise-offset) 0 0 var(--border);
   --shadow-raised-hover: var(--raise-offset-hover) var(--raise-offset-hover) 0 0 var(--border);
   --shadow-pressed: 0 0 0 0 var(--border);
+  --shadow-raised-sm: 2px 2px 0 0 var(--border);
+  --shadow-window: 6px 6px 0 0 var(--border);
+  --shadow-window-bg: 3px 3px 0 0 var(--border-soft);
   --focus-ring: 0 0 0 3px var(--surface-white), 0 0 0 5px var(--accent-blue);
+  --scrim: rgb(20 35 63 / 0.18);
 
   /* ---- Spacing scale (4px base) */
   --space-1: 4px;
@@ -92,7 +104,14 @@
   --weight-medium: 500;
   --weight-bold: 700;
 
-  /* ---- Motion (shell switches to the reduced values under Reduce motion) */
+  /* ---- Layers */
+  --z-desktop: 0;
+  --z-windows: 10;
+  --z-dock: 10000;
+  --z-tooltip: 10001;
+  --z-overlay: 10002;
+
+  /* ---- Motion (the shell switches to the reduced values under Reduce motion) */
   --duration-fast: 120ms;
   --duration-normal: 200ms;
   --easing-standard: cubic-bezier(0.2, 0, 0, 1);
