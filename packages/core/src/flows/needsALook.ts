@@ -12,7 +12,7 @@ import type { Cents } from "../money.ts";
 import type { IsoDate } from "../dates.ts";
 import { addDays, diffDays, isWithin } from "../dates.ts";
 import type { TransactionId } from "../types.ts";
-import { UNCATEGORIZED } from "./categories.ts";
+import { UNCATEGORIZED, categoryLabel } from "./categories.ts";
 import { countable, spendCents, type Ledger, type LedgerEntry } from "./ledger.ts";
 
 export const NEEDS_A_LOOK_KINDS = [
@@ -50,7 +50,7 @@ export interface NeedsALookOptions {
   largeMinAboveAverageCents?: Cents;
   /** Days of category history used for "unusual". */
   historyDays?: number;
-  /** Same account, amount and merchant within this many days = possible duplicate. */
+  /** Same account, amount and merchant within this many days of the first = possible duplicate (0 = same day). */
   duplicateWindowDays?: number;
 }
 
@@ -63,7 +63,7 @@ export function needsALook(ledger: Ledger, opts: NeedsALookOptions): NeedsALookI
   const multiple = opts.largeMultiple ?? 3;
   const minAbove = opts.largeMinAboveAverageCents ?? 10_000;
   const historyDays = opts.historyDays ?? 180;
-  const dupDays = opts.duplicateWindowDays ?? 1;
+  const dupDays = opts.duplicateWindowDays ?? 0;
   const items: NeedsALookItem[] = [];
   const inRange = (e: LedgerEntry) => countable(e) && isWithin(e.date, opts.from, opts.to) && !e.source;
   const firsts = new Map<TransactionId, LedgerEntry>();
@@ -137,13 +137,17 @@ export function needsALook(ledger: Ledger, opts: NeedsALookOptions): NeedsALookI
           id: `possible_duplicate:${cluster.map((c) => c.transactionId).join("+")}`,
           kind: "possible_duplicate",
           transactionIds: cluster.map((c) => c.transactionId),
-          reason: `${cluster.length} charges of the same amount at ${first.merchantName} within ${dupDays} day${dupDays === 1 ? "" : "s"} of each other.`,
+          reason:
+            dupDays === 0
+              ? `${cluster.length} charges of the same amount at ${first.merchantName} on the same day.`
+              : `${cluster.length} charges of the same amount at ${first.merchantName} within ${dupDays} day${dupDays === 1 ? "" : "s"}.`,
           ...base(first),
         });
       }
     };
     for (const e of list.slice(1)) {
-      if (diffDays(cluster[cluster.length - 1]!.date, e.date) <= dupDays) cluster.push(e);
+      // Compared with the cluster's first charge, so daily habits don't chain together.
+      if (diffDays(cluster[0]!.date, e.date) <= dupDays) cluster.push(e);
       else {
         flush();
         cluster = [e];
@@ -173,11 +177,22 @@ export function needsALook(ledger: Ledger, opts: NeedsALookOptions): NeedsALookI
       const avg = Math.round(hist.reduce((s, h) => s + spendCents(h), 0) / hist.length);
       if (spend > avg * multiple && spend - avg >= minAbove) {
         large = true;
-        why = `${(spend / avg).toFixed(1)}× your usual ${e.categoryPrimary} purchase (average of ${hist.length} in the last ${historyDays} days).`;
+        why = `${(spend / avg).toFixed(1)}× your usual ${categoryLabel(e.categoryPrimary)} purchase (average of ${hist.length} in the last ${historyDays} days).`;
       }
     } else if (spend >= largeAbs) {
-      large = true;
-      why = `A large amount with little history in this category.`;
+      // A repeat of a similar charge from the same merchant (rent, tuition) isn't unusual.
+      const repeat = spending.some(
+        (h) =>
+          h.transactionId !== e.transactionId &&
+          h.merchantKey === e.merchantKey &&
+          h.date < e.date &&
+          h.date >= histFrom &&
+          Math.abs(spendCents(h) - spend) <= spend * 0.1,
+      );
+      if (!repeat) {
+        large = true;
+        why = `A large amount (${categoryLabel(e.categoryPrimary)}) with little history to compare with.`;
+      }
     }
     if (large && !items.some((i) => i.kind === "large_unusual" && i.transactionIds[0] === e.transactionId)) {
       items.push({

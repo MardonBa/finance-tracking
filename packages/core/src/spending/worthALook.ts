@@ -2,6 +2,7 @@
  * "Worth a look" (§8, rule-based, no AI) and the cutting-back list.
  */
 import type { Cents } from "../money.ts";
+import { Money } from "../money.ts";
 import type { IsoDate, IsoMonth } from "../dates.ts";
 import { addMonthsToMonth, daysInMonth, monthEnd, monthOf, monthStart, parseIsoDate } from "../dates.ts";
 import type { CuttingBackItem, Id, TransactionId } from "../types.ts";
@@ -55,11 +56,7 @@ export interface WorthALookOptions {
   smallMinCount?: number;
 }
 
-const fmt = (c: Cents) => {
-  const abs = Math.abs(c);
-  const dollars = Math.round(abs / 100);
-  return `${c < 0 ? "-" : ""}$${String(dollars).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
-};
+const fmt = (c: Cents) => (Math.abs(c) < 10_000 ? Money.format(c) : Money.format(c, { noCents: true }));
 
 /** Fraction of `month` elapsed by `today` (1 for past months, 0 for future). */
 export function monthElapsed(month: IsoMonth, today: IsoDate): number {
@@ -84,16 +81,21 @@ export function worthALook(ledger: Ledger, opts: WorthALookOptions): { value: { 
   const items: WorthALookItem[] = [];
   const spendingOf = (m: IsoMonth) => inPeriod(ledger.entries, monthStart(m), monthEnd(m)).filter((e) => e.bucket === "spending");
   const cur = spendingOf(month);
+  // "Usual by now": each earlier month counted up to the same day of the
+  // month, so a rent paid on the 3rd doesn't look like a fast pace on the 20th.
+  const day = elapsed >= 1 ? 31 : parseIsoDate(today).day;
+  const upToDay = (es: LedgerEntry[]) => es.filter((e) => parseIsoDate(e.countDate).day <= day);
   const hist = new Map(basis.months.map((m) => [m, spendingOf(m)]));
+  const histByNow = new Map(basis.months.map((m) => [m, upToDay(hist.get(m)!)]));
   const sumBy = (es: readonly LedgerEntry[] | undefined, pred: (e: LedgerEntry) => boolean) =>
     (es ?? []).filter(pred).reduce((s, e) => s + spendCents(e), 0);
 
   // 1. Categories above their usual pace.
   for (const [cat, es] of groupBy(cur, (e) => e.categoryPrimary)) {
     const usual = usualValue(basis, (m) => sumBy(hist.get(m), (e) => e.categoryPrimary === cat));
-    if (usual === null || usual <= 0 || elapsed === 0) continue;
+    const expected = usualValue(basis, (m) => sumBy(histByNow.get(m), (e) => e.categoryPrimary === cat));
+    if (usual === null || expected === null || expected <= 0 || elapsed === 0) continue;
     const f = figure(es, measures.spend, `${categoryLabel(cat)} · ${month}`);
-    const expected = Math.round(usual * elapsed);
     if (f.cents >= expected * paceRatio && f.cents - expected >= paceMin) {
       const key = `category_pace.${cat}`;
       figures[key] = f;
@@ -117,12 +119,11 @@ export function worthALook(ledger: Ledger, opts: WorthALookOptions): { value: { 
   for (const [key, es] of groupBy(cur, (e) => e.merchantKey)) {
     const f = figure(es, measures.spend, `${ledger.merchantNames.get(key) ?? key} · ${month}`);
     if (f.cents <= 0) continue;
-    const usual = usualValue(basis, (m) => sumBy(hist.get(m), (e) => e.merchantKey === key));
+    const expected = usualValue(basis, (m) => sumBy(histByNow.get(m), (e) => e.merchantKey === key));
     const prev = [3, 2, 1].map((i) => {
       const m = addMonthsToMonth(month, -i);
       return sumBy(spendingOf(m), (e) => e.merchantKey === key);
     });
-    const expected = usual === null ? null : Math.round(usual * elapsed);
     const vsUsual = expected !== null && expected > 0 && f.cents >= expected * risingRatio && f.cents - expected >= risingMin;
     const streak = prev[0]! > 0 && prev[0]! < prev[1]! && prev[1]! < prev[2]! && (elapsed < 1 || prev[2]! < f.cents);
     if (!vsUsual && !streak) continue;
