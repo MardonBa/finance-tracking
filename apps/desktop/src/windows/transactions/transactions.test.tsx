@@ -9,13 +9,13 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { Money, emptyData } from "@ft/core";
 import { DRILLDOWN_EVENT, openDrillDown, openItem, openMerchant } from "../../data/drilldown.ts";
-import { calls, coreData, resetCore, runCoreQuery, TODAY } from "../testing/coreApi.ts";
-import { renderInWindow } from "../testing/render.tsx";
+import { calls, coreData, resetCore, runCoreQuery, TODAY } from "../../test/coreBackend.tsx";
+import { renderInWindow } from "../../test/render.tsx";
 import { TransactionsWindow } from "./TransactionsWindow.tsx";
 import { UnexplainedNote } from "../../accounts/AccountSheets.tsx";
 import { OPEN_ITEM_EVENT } from "../../data/drilldown.ts";
 
-vi.mock("../../api/client.ts", async () => (await import("../testing/coreApi.ts")).clientMock);
+vi.mock("../../api/client.ts", async () => (await import("../../test/coreBackend.tsx")).clientMock);
 
 const OCT = { from: "2026-10-01", to: "2026-10-31" };
 

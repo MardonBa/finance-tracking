@@ -8,12 +8,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { basicFixture } from "@ft/core/fixtures";
-import { calls, coreData, resetCore } from "../windows/testing/coreApi.ts";
-import { renderInWindow } from "../windows/testing/render.tsx";
+import { calls, coreData, resetCore } from "../test/coreBackend.tsx";
+import { renderInWindow } from "../test/render.tsx";
 import { ManualAccountForm, ManualTransactions, manualTransactionSteps, parseDollars } from "./manual.tsx";
 import { AccountEditor, accountEditSteps } from "./AccountEditor.tsx";
 
-vi.mock("../api/client.ts", async () => (await import("../windows/testing/coreApi.ts")).clientMock);
+vi.mock("../api/client.ts", async () => (await import("../test/coreBackend.tsx")).clientMock);
 
 beforeEach(() => resetCore(basicFixture().data));
 afterEach(() => cleanup());

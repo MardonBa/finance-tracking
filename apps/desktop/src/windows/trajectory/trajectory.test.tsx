@@ -6,7 +6,8 @@ import userEvent from "@testing-library/user-event";
 import { eachDay, queryRegistry, type CoreData } from "@ft/core";
 import { basicFixture } from "@ft/core/fixtures";
 import { DRILLDOWN_EVENT, type DrillDownRequest } from "../../data/drilldown.ts";
-import { installCoreBackend, renderWithToken, type CoreBackend } from "../../test/coreBackend.tsx";
+import { installCoreBackend, type CoreBackend } from "../../test/coreBackend.tsx";
+import { renderWithToken } from "../../test/render.tsx";
 import { lastChart } from "../../test/chartStub.tsx";
 import { money } from "../shared/format.ts";
 import { TrajectoryWindow } from "./TrajectoryWindow.tsx";
@@ -38,7 +39,7 @@ function historyFixture() {
 }
 
 function lastBody(backend: CoreBackend, name: string): Record<string, unknown> {
-  return backend.callsTo(name).at(-1)!.body as Record<string, unknown>;
+  return backend.callsTo(name).at(-1)!.input as Record<string, unknown>;
 }
 
 function coreProjection(data: CoreData, today: string, params: unknown) {

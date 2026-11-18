@@ -5,7 +5,8 @@ import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { InvestmentTransaction } from "@ft/core";
 import { basicFixture } from "@ft/core/fixtures";
-import { installCoreBackend, renderWithToken } from "../../test/coreBackend.tsx";
+import { installCoreBackend } from "../../test/coreBackend.tsx";
+import { renderWithToken } from "../../test/render.tsx";
 import { lastChart } from "../../test/chartStub.tsx";
 import { InvestmentsWindow } from "./InvestmentsWindow.tsx";
 

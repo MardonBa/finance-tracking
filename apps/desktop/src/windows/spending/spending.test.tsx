@@ -8,13 +8,13 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { Money } from "@ft/core";
 import { DRILLDOWN_EVENT, MERCHANT_EVENT, type DrillDownRequest, type MerchantRequest } from "../../data/drilldown.ts";
-import { calls, resetCore, runCoreQuery, TODAY } from "../testing/coreApi.ts";
-import { renderInWindow } from "../testing/render.tsx";
+import { calls, resetCore, runCoreQuery, TODAY } from "../../test/coreBackend.tsx";
+import { renderInWindow } from "../../test/render.tsx";
 import { SpendingWindow, type SpendingTab } from "./SpendingWindow.tsx";
 import { sankeyClickFigure, type SANKEY_DEFAULTS } from "./SankeyPanel.tsx";
 import { TransactionsWindow } from "../transactions/TransactionsWindow.tsx";
 
-vi.mock("../../api/client.ts", async () => (await import("../testing/coreApi.ts")).clientMock);
+vi.mock("../../api/client.ts", async () => (await import("../../test/coreBackend.tsx")).clientMock);
 // ECharts needs a real canvas; the Sankey's click mapping is tested directly below.
 vi.mock("../../ui/Chart.tsx", () => ({ Chart: ({ ariaLabel }: { ariaLabel: string }) => <div role="img" aria-label={ariaLabel} /> }));
 

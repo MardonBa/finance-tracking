@@ -7,15 +7,15 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { DRILLDOWN_EVENT, OPEN_ITEM_EVENT, type DrillDownRequest, type OpenItemRequest } from "../../data/drilldown.ts";
-import { resetCore, runCoreQuery, TODAY } from "../testing/coreApi.ts";
-import { renderInWindow } from "../testing/render.tsx";
+import { resetCore, runCoreQuery, TODAY } from "../../test/coreBackend.tsx";
+import { renderInWindow } from "../../test/render.tsx";
 import type { ConnectionHealth } from "../../connections/api.ts";
 import { computeAlerts } from "./alerts.ts";
 import { OverviewWindow } from "./OverviewWindow.tsx";
 
 const h = vi.hoisted(() => ({ connections: [] as unknown[] }));
 vi.mock("../../api/client.ts", async () => {
-  const { clientMock } = await import("../testing/coreApi.ts");
+  const { clientMock } = await import("../../test/coreBackend.tsx");
   return {
     ...clientMock,
     apiRequest: async (path: string) => {
@@ -104,7 +104,7 @@ describe("OverviewWindow", { timeout: 30_000 }, () => {
 
   it("shows no strip at all when nothing needs attention", async () => {
     // A ledger with nothing to look at: no transactions.
-    const { coreData } = await import("../testing/coreApi.ts");
+    const { coreData } = await import("../../test/coreBackend.tsx");
     const data = coreData();
     resetCore({ ...data, transactions: [], recurringItems: [], balanceSnapshots: data.balanceSnapshots.filter(() => false) });
     renderInWindow(<OverviewWindow />, "overview");

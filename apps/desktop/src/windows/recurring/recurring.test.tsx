@@ -4,7 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DRILLDOWN_EVENT, type DrillDownRequest } from "../../data/drilldown.ts";
-import { installCoreBackend, recurringFixture, recurringItem, renderWithToken } from "../../test/coreBackend.tsx";
+import { installCoreBackend, recurringFixture, recurringItem } from "../../test/coreBackend.tsx";
+import { renderWithToken } from "../../test/render.tsx";
 import { RecurringWindow } from "./RecurringWindow.tsx";
 import { LowBalanceWarnings, useLowBalanceWarnings } from "./warnings.tsx";
 
