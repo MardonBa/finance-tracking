@@ -585,3 +585,14 @@ export const syncRuns = sqliteTable(
   },
   (t) => [index("sync_runs_item_idx").on(t.itemId, t.startedAt)],
 );
+
+/**
+ * One row per data slice (TABLES key). SQLite triggers (migration 0004) give the
+ * slice a fresh random token on every insert, update or delete of its table, so a
+ * Worker can keep slices in memory and re-read a table only when its token
+ * changed (db/data.ts). Saves D1 row reads; not exported in backups.
+ */
+export const sliceVersions = sqliteTable("slice_versions", {
+  slice: text("slice").primaryKey(), // TABLES key, e.g. "transactions"
+  token: text("token").notNull(), // random; changes whenever the table changes (equal token = same rows)
+});

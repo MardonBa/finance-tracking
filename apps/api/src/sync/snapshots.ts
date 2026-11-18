@@ -16,7 +16,7 @@ const STALE_AFTER_MS = 36 * 60 * 60 * 1000;
 
 export async function saveDailySnapshots(env: AppEnv, today: string): Promise<{ saved: number }> {
   const staleBefore = new Date(deps.now() - STALE_AFTER_MS).toISOString();
-  const res = await env.DB.prepare(
+  await env.DB.prepare(
     `INSERT INTO balance_snapshots (account_id, date, balance_cents, source, is_estimated, is_carried_forward)
      SELECT id, ?1, current_balance_cents,
             CASE WHEN is_manual = 1 THEN 'manual'
@@ -33,5 +33,6 @@ export async function saveDailySnapshots(env: AppEnv, today: string): Promise<{ 
     .run();
   const ids = await env.DB.prepare("SELECT account_id FROM balance_snapshots WHERE date = ?1").bind(today).all<{ account_id: string }>();
   await syncHooks.afterDailySnapshots(env, { date: today, accountIds: ids.results.map((r) => r.account_id) });
-  return { saved: res.meta.changes ?? 0 };
+  // Count the snapshots themselves: meta.changes also counts the slice-version trigger updates (migration 0004).
+  return { saved: ids.results.length };
 }
