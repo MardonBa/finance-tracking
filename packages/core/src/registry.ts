@@ -19,9 +19,15 @@ import type { CoreData, DataKey, Id, IsoDateTime, TransactionId } from "./types.
 
 /** One cent-exact contribution to a figure. Splits name the split part. */
 export interface Contribution {
+  /** A Transaction id, or an InvestmentTransaction id when `source` says so. */
   transactionId: TransactionId;
   splitId?: Id;
   cents: Cents;
+  /**
+   * Where `transactionId` points. Absent = `transactions`. Dividends and
+   * interest paid inside a brokerage come from `investmentTransactions` (§6, §17).
+   */
+  source?: "investment_transaction";
 }
 
 /**

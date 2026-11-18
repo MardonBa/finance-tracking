@@ -69,7 +69,11 @@ describe("every registered query", () => {
         for (const [path, fig] of Object.entries(first.figures)) {
           expect(Money.sum(fig.contributions.map((c) => c.cents)), `${q.name} ${path}`).toBe(fig.cents);
           const known = new Set(data.transactions.map((t) => t.id));
-          for (const c of fig.contributions) expect(known.has(c.transactionId), `${q.name} ${path}`).toBe(true);
+          const knownInvestment = new Set(data.investmentTransactions.map((t) => t.id));
+          for (const c of fig.contributions) {
+            const ids = c.source === "investment_transaction" ? knownInvestment : known;
+            expect(ids.has(c.transactionId), `${q.name} ${path}`).toBe(true);
+          }
         }
       }
     });
