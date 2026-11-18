@@ -5,7 +5,8 @@
 import type { ReactNode } from "react";
 import type { Spending } from "@ft/core";
 import { monthShort } from "../../data/dates.ts";
-import { StatNumber } from "../../ui/components.tsx";
+import { Button, StatNumber } from "../../ui/components.tsx";
+import { explainWithAssistant } from "../assistant/explain.ts";
 import { money, pct, points, signed } from "../transactions/format.ts";
 import { useFigures } from "./drill.ts";
 
@@ -72,6 +73,15 @@ export function Summary({ month, usualMonths }: { month: string; usualMonths: 1 
       <p className="sp-usual-note" data-testid="usual-basis">
         Usual = {v.usual.basis.label} ({v.usual.basis.chosen === 1 ? "1 month" : `${v.usual.basis.chosen} months`} chosen)
       </p>
+      {/* "Explain this" (design.md §7): asks the assistant about this month's spending; runs only on click. */}
+      <Button
+        size="sm"
+        variant="ghost"
+        icon="assistant"
+        onClick={() => explainWithAssistant({ query: "spending.monthlySummary", params, figureId: "spending", label: `Spending · ${monthShort(month)}` })}
+      >
+        Explain
+      </Button>
     </div>
   );
 }
