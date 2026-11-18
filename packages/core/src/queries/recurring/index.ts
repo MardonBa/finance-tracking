@@ -1,11 +1,11 @@
-/** Recurring queries (§9): the list, the upcoming view with warnings, and the month calendar. */
+/** Recurring queries (§9): the list, the upcoming view with warnings, the month calendar, and credit cards with their paying account. */
 import { z } from "zod";
 import { defineQuery, type AnyQuery, type Figure } from "../../registry.ts";
 import { Money } from "../../money.ts";
 import { monthOf } from "../../dates.ts";
 import { isoMonthSchema } from "../../schemas.ts";
 import type { CoreData } from "../../types.ts";
-import { displayName } from "../../balances/accountKinds.ts";
+import { accountKind, displayName } from "../../balances/accountKinds.ts";
 import { mergeRecurring, type MergedRecurring } from "../../recurring/merge.ts";
 import { cardPaymentsDue, monthCalendar, upcomingProjections } from "../../recurring/projection.ts";
 
@@ -79,5 +79,36 @@ export const recurringCalendar = defineQuery({
   },
 });
 
+export const recurringCards = defineQuery({
+  name: "recurring.cards",
+  description:
+    "Every credit card with the account it's paid from (set even when no statement is due), its last statement balance and next due date (§9 credit card payments).",
+  params: z.object({}),
+  needs: ["accounts", "liabilities"],
+  examples: [{}],
+  run(data) {
+    const name = (id: string | null) => {
+      const a = id ? data.accounts.find((x) => x.id === id) : undefined;
+      return a ? displayName(a) : null;
+    };
+    const cards = data.accounts
+      .filter((a) => accountKind(a) === "credit")
+      .map((a) => {
+        const l = data.liabilities.find((x) => x.accountId === a.id);
+        return {
+          cardAccountId: a.id,
+          name: displayName(a),
+          hidden: a.hidden,
+          payingAccountId: l?.payingAccountId ?? null,
+          payingAccountName: name(l?.payingAccountId ?? null),
+          lastStatementBalanceCents: l?.lastStatementBalanceCents ?? null,
+          nextPaymentDueDate: l?.nextPaymentDueDate ?? null,
+        };
+      })
+      .sort((x, y) => x.name.localeCompare(y.name) || (x.cardAccountId < y.cardAccountId ? -1 : 1));
+    return { value: { cards }, figures: {} };
+  },
+});
+
 /** Queries of the "recurring" module. Every name must start with "recurring.". Add files in this folder and list them here. */
-export const queries: AnyQuery[] = [listRecurring, upcomingRecurring, recurringCalendar];
+export const queries: AnyQuery[] = [listRecurring, upcomingRecurring, recurringCalendar, recurringCards];

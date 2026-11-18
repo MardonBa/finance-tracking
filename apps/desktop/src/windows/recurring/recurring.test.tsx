@@ -4,7 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DRILLDOWN_EVENT, type DrillDownRequest } from "../../data/drilldown.ts";
-import { installCoreBackend, recurringFixture, recurringItem, renderWithToken } from "../../test/coreBackend.tsx";
+import { installCoreBackend, recurringFixture, recurringItem } from "../../test/coreBackend.tsx";
+import { renderWithToken } from "../../test/render.tsx";
 import { RecurringWindow } from "./RecurringWindow.tsx";
 import { LowBalanceWarnings, useLowBalanceWarnings } from "./warnings.tsx";
 
@@ -124,6 +125,38 @@ describe("Recurring: the list", () => {
     await userEvent.click(screen.getByRole("tab", { name: "Will I be covered?" }));
     const table = await screen.findByRole("table", { name: "Coming out of Checking" });
     await waitFor(() => expect(within(table).getByText("Gym")).toBeTruthy());
+  });
+
+  it("edits an item's amount after a preview, and the projection uses the new amount", async () => {
+    const backend = installCoreBackend(recurringFixture());
+    renderWithToken(<RecurringWindow />);
+    await userEvent.click(await screen.findByRole("tab", { name: "All recurring" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Edit Rent" }));
+    await userEvent.clear(screen.getByLabelText("Amount ($)"));
+    await userEvent.type(screen.getByLabelText("Amount ($)"), "3100");
+    await userEvent.click(screen.getByRole("button", { name: "Review" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Save changes" }));
+    await waitFor(() => expect(backend.data.recurringOverrides).toEqual([expect.objectContaining({ recurringItemId: "r_rent", amountCents: 310000 })]));
+    await userEvent.click(screen.getByRole("tab", { name: "Will I be covered?" }));
+    const table = await screen.findByRole("table", { name: "Coming out of Checking" });
+    await waitFor(() => expect(within(table).getByText("-$3,100.00")).toBeTruthy());
+  });
+
+  it("shows the account a card is paid from even when no statement is due (recurring.cards)", async () => {
+    const f = recurringFixture();
+    // The last statement's due date has passed: nothing is due, but the card is still paid from Checking.
+    f.data.liabilities = f.data.liabilities.map((l) => ({ ...l, nextPaymentDueDate: "2026-10-05" }));
+    const backend = installCoreBackend(f);
+    renderWithToken(<RecurringWindow />);
+    await userEvent.click(await screen.findByRole("tab", { name: "All recurring" }));
+    const picker = (await screen.findByLabelText(/is paid from$/)) as HTMLSelectElement;
+    await waitFor(() => expect(picker.selectedOptions[0]!.textContent).toBe("Checking"));
+    expect(screen.queryByText(/^Statement /)).toBeNull();
+    expect(backend.callsTo("recurring.cards").length).toBeGreaterThan(0);
+    // Choosing "Not set" previews the change from Checking.
+    await userEvent.selectOptions(picker, "");
+    await userEvent.click(screen.getByRole("button", { name: "Review" }));
+    expect(await screen.findByText(/Pay .* from no account/)).toBeTruthy();
   });
 
   it("removes an item through recurring.remove with a preview", async () => {

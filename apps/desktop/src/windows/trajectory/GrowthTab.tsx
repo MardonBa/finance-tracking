@@ -4,11 +4,12 @@
  */
 import { useQuery } from "../../data/hooks.ts";
 import { Chart } from "../../ui/Chart.tsx";
-import { Card, EmptyState, StatNumber } from "../../ui/components.tsx";
+import { Card, StatNumber } from "../../ui/components.tsx";
 import { color } from "../../ui/tokens.ts";
 import { longDate, money, moneyShort, monthShort } from "../shared/format.ts";
 import { downsample } from "./charts.ts";
 import type { Grain, InvestmentGrowthValue } from "./types.ts";
+import { ConnectEmptyState } from "../shared/ConnectEmptyState.tsx";
 
 type Acc = InvestmentGrowthValue["accounts"][number];
 
@@ -55,7 +56,7 @@ export function GrowthTab({ grain }: { grain: Grain }) {
   if (q.error && !q.data) return <p className="rti-error">Couldn't load investments: {q.error.message}</p>;
   if (!q.data) return <p className="rti-note">Loading…</p>;
   const accounts = q.data.value.accounts;
-  if (accounts.length === 0) return <EmptyState icon="investments" title="No investment accounts" description="Connect a brokerage or retirement account to see what you put in and how it grew." />;
+  if (accounts.length === 0) return <ConnectEmptyState icon="investments" title="No investment accounts" description="Connect a brokerage or retirement account to see what you put in and how it grew." />;
   return (
     <div className="rti-stack">
       {accounts.map((a) => {

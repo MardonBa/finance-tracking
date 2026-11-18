@@ -17,6 +17,7 @@ import { BudgetEditor, type ConfigValue, type EditTarget } from "./BudgetEditor.
 import { HistoryView } from "./HistoryView.tsx";
 import { longDate, periodLabel, todayIso, usd } from "./format.ts";
 import "./budgets.css";
+import { ExplainButton } from "../shared/ExplainButton.tsx";
 
 type Tab = "period" | "trips" | "history";
 type View = Budgets.BudgetPeriodView;
@@ -101,6 +102,7 @@ export function BudgetsWindow() {
               ))}
             </Select>
           )}
+          <ExplainButton figure={{ query: "budgets.overview", params: {}, label: `${view.name} budget · ${ptext}` }} />
           <Button size="sm" onClick={() => setEditing({ kind: "budget", budgetId: view.budgetId })}>
             Edit budget
           </Button>

@@ -6,11 +6,12 @@
 import { openDrillDown } from "../../data/drilldown.ts";
 import { useQuery } from "../../data/hooks.ts";
 import { Chart } from "../../ui/Chart.tsx";
-import { Card, EmptyState, StatNumber } from "../../ui/components.tsx";
+import { Card, StatNumber } from "../../ui/components.tsx";
 import { color } from "../../ui/tokens.ts";
 import { money, moneyShort } from "../shared/format.ts";
 import { periodLabel } from "./charts.ts";
 import type { Grain, InterestValue } from "./types.ts";
+import { ConnectEmptyState } from "../shared/ConnectEmptyState.tsx";
 
 type Acc = InterestValue["accounts"][number];
 
@@ -60,7 +61,7 @@ export function InterestTab({ grain }: { grain: Grain }) {
   if (!q.data) return <p className="rti-note">Loading…</p>;
   const { accounts } = q.data.value;
   const figures = q.data.figures;
-  if (accounts.length === 0) return <EmptyState icon="trajectory" title="No interest-earning accounts" description="A savings account (like a HYSA) shows here with the interest it has earned." />;
+  if (accounts.length === 0) return <ConnectEmptyState icon="trajectory" title="No interest-earning accounts" description="A savings account (like a HYSA) shows here with the interest it has earned." />;
 
   const drill = (a: Acc, key: string, label: string) => {
     const figureId = `interest.${a.accountId}.${key}`;

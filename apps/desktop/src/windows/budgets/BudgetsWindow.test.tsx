@@ -6,11 +6,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { flowsFixture } from "@ft/core/fixtures";
-import { createFakeBackend, WithToken, type FakeBackend } from "../goals/testing/fakeBackend.tsx";
+import { createCoreBackend, type CoreBackend } from "../../test/coreBackend.tsx";
+import { WithToken } from "../../test/render.tsx";
 import { DRILLDOWN_EVENT, type DrillDownRequest } from "../../data/drilldown.ts";
 import { BudgetsWindow } from "./BudgetsWindow.tsx";
 
-const h = vi.hoisted(() => ({ be: null as unknown as FakeBackend }));
+const h = vi.hoisted(() => ({ be: null as unknown as CoreBackend }));
 vi.mock("../../api/client.ts", async (orig) => ({
   ...(await orig<typeof import("../../api/client.ts")>()),
   runQuery: (t: string, n: string, p: unknown) => h.be.runQuery(t, n, p),
@@ -23,7 +24,7 @@ let drills: DrillDownRequest[] = [];
 const onDrill = (e: Event) => drills.push((e as CustomEvent<DrillDownRequest>).detail);
 
 beforeEach(() => {
-  h.be = createFakeBackend(flowsFixture());
+  h.be = createCoreBackend(flowsFixture());
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-20T12:00:00"));
   drills = [];

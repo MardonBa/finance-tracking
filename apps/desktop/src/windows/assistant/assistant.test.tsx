@@ -8,7 +8,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { DRILLDOWN_EVENT, type DrillDownRequest } from "../../data/drilldown.ts";
-import { renderInWindow } from "../testing/render.tsx";
+import { renderInWindow } from "../../test/render.tsx";
 import type { ChatResponse } from "./api.ts";
 
 const api = vi.hoisted(() => ({

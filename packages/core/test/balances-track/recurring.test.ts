@@ -205,3 +205,21 @@ describe("§9 month calendar", () => {
     expect(cal.estimatedCents).toBe(0);
   });
 });
+
+describe("§9 credit cards and the account they're paid from", () => {
+  it("recurring.cards lists every card with its paying account, even with no statement due", async () => {
+    const { queryRegistry } = await import("../../src/queries/index.ts");
+    const { basicFixture } = await import("../../fixtures/index.ts");
+    const { data, today } = basicFixture();
+    data.liabilities = data.liabilities.map((l) => ({ ...l, nextPaymentDueDate: "2026-10-05" }));
+    const q = queryRegistry.get("recurring.cards")!;
+    const r = q.run(data as never, q.params.parse({}), today) as { value: { cards: Array<Record<string, unknown>> } };
+    expect(r.value.cards).toEqual([
+      expect.objectContaining({ cardAccountId: "acc_card", payingAccountId: "acc_checking", payingAccountName: "Checking", lastStatementBalanceCents: 20000, nextPaymentDueDate: "2026-10-05" }),
+    ]);
+    // A card with no liabilities row yet is listed with no paying account.
+    data.liabilities = [];
+    const none = q.run(data as never, q.params.parse({}), today) as { value: { cards: Array<Record<string, unknown>> } };
+    expect(none.value.cards).toEqual([expect.objectContaining({ cardAccountId: "acc_card", payingAccountId: null, payingAccountName: null })]);
+  });
+});

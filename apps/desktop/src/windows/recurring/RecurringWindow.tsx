@@ -15,6 +15,7 @@ import { LowBalanceWarningsView } from "./warnings.tsx";
 import type { AccountRow, ListValue, UpcomingValue } from "./types.ts";
 import "../shared/shared.css";
 import "./recurring.css";
+import { ExplainButton } from "../shared/ExplainButton.tsx";
 
 type Tab = "upcoming" | "list" | "calendar";
 
@@ -39,7 +40,11 @@ export function RecurringWindow() {
     <div className="rti-window">
       <div className="rti-window__top">
         {upcoming.data && <LowBalanceWarningsView warnings={upcoming.data.value.warnings} />}
-        <Tabs label="Recurring views" tabs={TABS} value={tab} onChange={setTab} />
+        <div className="rti-toolbar">
+          <Tabs label="Recurring views" tabs={TABS} value={tab} onChange={setTab} />
+          <span className="rti-toolbar__spacer" />
+          <ExplainButton figure={{ query: "recurring.upcoming", params: {}, label: "upcoming bills and balances" }} />
+        </div>
       </div>
       <div className="rti-scroll" role="tabpanel" aria-labelledby={`tab-${tab}`}>
         {error && !upcoming.data && (

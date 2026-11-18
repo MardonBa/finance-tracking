@@ -21,6 +21,7 @@ import { goalColor } from "./goalColors.ts";
 import type { Achievement, ExplainValue, GoalCardValue, GoalsListValue } from "./types.ts";
 import "../budgets/budgets.css";
 import "./goals.css";
+import { ExplainButton } from "../shared/ExplainButton.tsx";
 
 type Tab = "goals" | "plan" | "achievements";
 
@@ -130,9 +131,12 @@ export function GoalsWindow() {
           <h2 className="bg-title">{goals.length === 0 ? "Goals" : `${usd(goals.reduce((s, g) => s + g.savedCents, 0))} saved of ${usd(goals.reduce((s, g) => s + g.targetCents, 0))}`}</h2>
         </div>
         {(goals.length > 0 || achievements.length > 0) && (
-          <Button size="sm" icon="plus" variant="primary" onClick={() => setOverlay({ kind: "edit" })}>
-            Add goal
-          </Button>
+          <div className="bg-header__controls">
+            {goals.length > 0 && <ExplainButton figure={{ query: "goals.list", params: {}, label: "my savings goals" }} />}
+            <Button size="sm" icon="plus" variant="primary" onClick={() => setOverlay({ kind: "edit" })}>
+              Add goal
+            </Button>
+          </div>
         )}
       </header>
       {body}

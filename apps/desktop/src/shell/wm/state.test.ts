@@ -159,6 +159,43 @@ describe("clamping", () => {
     }
   });
 
+  it("windows that shrank with the app window grow back toward the size and place I chose", () => {
+    let s = run(initialState(VP), { type: "open", area: "spending" }, { type: "resize", area: "spending", rect: { x: 400, y: 200, w: 700, h: 500 } });
+    const chosen = { x: 400, y: 200, w: 700, h: 500 };
+    expect(s.windows.spending).toMatchObject(chosen);
+    s = run(s, { type: "setViewport", viewport: { w: 600, h: 400 } });
+    ok(s);
+    expect(s.windows.spending).toMatchObject({ x: 0, y: 0, w: 600, h: 400 });
+    // Part way back: as big as fits, as close to where it was as fits.
+    s = run(s, { type: "setViewport", viewport: { w: 900, h: 650 } });
+    ok(s);
+    expect(s.windows.spending).toMatchObject({ x: 200, y: 150, w: 700, h: 500 });
+    // All the way back: exactly as chosen.
+    s = run(s, { type: "setViewport", viewport: VP });
+    ok(s);
+    expect(s.windows.spending).toMatchObject(chosen);
+  });
+
+  it("moving a window while it's shrunk keeps the size I chose for when there's room again", () => {
+    let s = run(initialState(VP), { type: "resize", area: "overview", rect: { x: 100, y: 100, w: 900, h: 600 } });
+    s = run(s, { type: "setViewport", viewport: { w: 800, h: 500 } }, { type: "move", area: "overview", x: 0, y: 0 });
+    expect(s.windows.overview).toMatchObject({ x: 0, y: 0, w: 800, h: 500 });
+    s = run(s, { type: "setViewport", viewport: VP });
+    expect(s.windows.overview).toMatchObject({ x: 0, y: 0, w: 900, h: 600 });
+    // A resize while shrunk is a new choice.
+    s = run(s, { type: "setViewport", viewport: { w: 800, h: 500 } }, { type: "resize", area: "overview", rect: { x: 0, y: 0, w: 500, h: 400 } }, { type: "setViewport", viewport: VP });
+    expect(s.windows.overview).toMatchObject({ x: 0, y: 0, w: 500, h: 400 });
+  });
+
+  it("a maximised window un-maximises to its chosen size after the app window shrank and grew", () => {
+    let s = run(initialState(VP), { type: "resize", area: "overview", rect: { x: 100, y: 100, w: 900, h: 600 } }, { type: "toggleMaximize", area: "overview" });
+    s = run(s, { type: "setViewport", viewport: { w: 800, h: 500 } });
+    expect(s.windows.overview).toMatchObject({ x: 0, y: 0, w: 800, h: 500, maximized: true });
+    s = run(s, { type: "setViewport", viewport: VP }, { type: "toggleMaximize", area: "overview" });
+    expect(s.windows.overview).toMatchObject({ x: 100, y: 100, w: 900, h: 600, maximized: false });
+    ok(s);
+  });
+
   it("resizes from every edge and corner, stopping at the minimum and the desktop", () => {
     const start = { x: 100, y: 100, w: 500, h: 400 };
     expect(resizeRect(start, "se", 50, 30, VP, min)).toEqual({ x: 100, y: 100, w: 550, h: 430 });

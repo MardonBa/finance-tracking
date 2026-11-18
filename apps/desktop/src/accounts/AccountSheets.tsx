@@ -5,7 +5,9 @@
  * so any window can ask without sharing state.
  */
 import { useEffect, useRef, useState } from "react";
-import { Money, type AccountKind } from "@ft/core";
+import { Money, monthOf, monthStart, type AccountKind } from "@ft/core";
+import { openItem } from "../data/drilldown.ts";
+import { todayIso } from "../data/dates.ts";
 import { useQuery } from "../data/hooks.ts";
 import { Dialog } from "../dialogs/Dialog.tsx";
 import { ConfirmActions } from "../dialogs/ConfirmActions.tsx";
@@ -117,6 +119,7 @@ function AccountSheet({ token, accountId, onClose }: { token: string; accountId:
               </span>
             </p>
           )}
+          <UnexplainedNote accountId={account.id} />
           <AccountEditor
             key={account.id}
             account={{ id: account.id, name: account.name, mask: account.mask, kind: account.kind, hidden: account.hidden, balanceCents: null, isManual: account.isManual }}
@@ -145,5 +148,32 @@ function AccountSheet({ token, accountId, onClose }: { token: string; accountId:
         />
       )}
     </>
+  );
+}
+
+/**
+ * §6: "Any difference is shown as 'unexplained' on that account": this
+ * month's start balance + money in − money out vs today's balance. Opens the
+ * Transactions window's balance check for the details.
+ */
+export function UnexplainedNote({ accountId }: { accountId: string }) {
+  const today = todayIso();
+  const rec = useQuery<{ accounts: { accountId: string; status: string; unexplainedCents: number }[] }>("flows.reconciliation", {
+    from: monthStart(monthOf(today)),
+    to: today,
+    accountId,
+  });
+  const a = rec.data?.value.accounts[0];
+  if (!a || a.status !== "unexplained") return null;
+  return (
+    <p className="ft-note ft-note--warning" role="status" data-testid="account-unexplained">
+      <Icon name="warning" size={16} />
+      <span>
+        Unexplained this month: {Money.format(a.unexplainedCents, { showPlus: true })}. The balance moved by that much more than its transactions explain.{" "}
+        <Button size="sm" onClick={() => openItem({ area: "transactions", itemId: "reconciliation" })}>
+          Show the balance check
+        </Button>
+      </span>
+    </p>
   );
 }

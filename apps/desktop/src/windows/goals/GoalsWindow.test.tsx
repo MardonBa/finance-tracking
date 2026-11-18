@@ -7,12 +7,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { goalsFixture } from "@ft/core/fixtures";
-import { createFakeBackend, WithToken, type FakeBackend } from "./testing/fakeBackend.tsx";
+import { createCoreBackend, type CoreBackend } from "../../test/coreBackend.tsx";
+import { WithToken } from "../../test/render.tsx";
 import { GoalsWindow } from "./GoalsWindow.tsx";
 import { GoalCelebrations, resetCelebrationClaims } from "./GoalCelebrations.tsx";
 import { setPictureStore, type PictureStore } from "./pictures.ts";
 
-const h = vi.hoisted(() => ({ be: null as unknown as FakeBackend }));
+const h = vi.hoisted(() => ({ be: null as unknown as CoreBackend }));
 vi.mock("../../api/client.ts", async (orig) => ({
   ...(await orig<typeof import("../../api/client.ts")>()),
   runQuery: (t: string, n: string, p: unknown) => h.be.runQuery(t, n, p),
@@ -37,7 +38,7 @@ function setReducedMotion(reduced: boolean) {
 }
 
 beforeEach(() => {
-  h.be = createFakeBackend(goalsFixture());
+  h.be = createCoreBackend(goalsFixture());
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-31T12:00:00"));
   setPictureStore(memoryStore());

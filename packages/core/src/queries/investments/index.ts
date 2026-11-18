@@ -1,6 +1,7 @@
 /** Investment queries (§17): holdings, allocation, performance, activity, history. */
 import { z } from "zod";
-import { defineQuery, type AnyQuery } from "../../registry.ts";
+import { Money } from "../../money.ts";
+import { defineQuery, type Figure, type AnyQuery } from "../../registry.ts";
 import { idSchema, isoDateSchema } from "../../schemas.ts";
 import { activityList, allocation, holdingsByAccount, holdingsHistory, performance } from "../../investments/investments.ts";
 
@@ -33,7 +34,22 @@ export const performanceQuery = defineQuery({
   needs: ["accounts", "holdings", "investmentTransactions", "transactions", "transferLinks"],
   examples: [{}],
   run(data, _params, today) {
-    return { value: performance({ ...data, today }), figures: {} };
+    const value = performance({ ...data, today });
+    // Transfers in − out drill down to their transactions when every one of them is a bank transaction
+    // (brokerage-side activity lives in investment transactions, which aren't in the Transactions window).
+    const figures: Record<string, Figure> = {};
+    for (const p of value.accounts) {
+      if (p.investmentTransactionIds.length > 0 || p.transferTransactionIds.length === 0) continue;
+      const txs = data.transactions.filter((t) => p.transferTransactionIds.includes(t.id));
+      const cents = Money.sum(txs.map((t) => t.amountCents));
+      if (cents !== p.netTransfersCents) continue;
+      figures[`${p.accountId}.transfers`] = {
+        cents,
+        contributions: txs.map((t) => ({ transactionId: t.id, cents: t.amountCents })),
+        label: `Transfers into ${p.label} since ${p.historyStartsOn}`,
+      };
+    }
+    return { value, figures };
   },
 });
 

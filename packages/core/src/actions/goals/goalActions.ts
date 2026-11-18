@@ -9,7 +9,8 @@ import { Money } from "../../money.ts";
 import { centsSchema, idSchema, isoDateSchema } from "../../schemas.ts";
 import { CONTRIBUTION_PERIODS, type Account, type CoreData, type Goal } from "../../types.ts";
 import { accountKind, displayName, isDebtKind } from "../../balances/accountKinds.ts";
-import { activeGoals, byPriority } from "../../goals/allocation.ts";
+import { activeGoals, allocate, allocatedFor, byPriority } from "../../goals/allocation.ts";
+import { milestonesFor } from "../../goals/milestones.ts";
 import { explainGoalChanges } from "../../goals/explain.ts";
 
 const fmt = (c: number | null | undefined) => (c === null || c === undefined ? null : Money.format(c));
@@ -44,6 +45,36 @@ function upsertGoal(row: Goal): Mutation {
   return { op: "upsert", table: "goals", row };
 }
 
+/**
+ * Milestones `goal` already covers with the money it would be assigned once
+ * `goalsAfter` are the goals, recorded as seen so only progress made from
+ * here on is celebrated (open-items: "a new goal celebrates the milestones it
+ * already covers"). `includeCompletion: false` leaves the completion
+ * milestone to celebrate, e.g. when lowering a target finishes the goal.
+ */
+export function alreadyReachedMilestones(
+  data: Pick<CoreData, "accounts" | "goalMilestonesSeen">,
+  goal: Goal,
+  goalsAfter: readonly Goal[],
+  now: string,
+  opts: { includeCompletion: boolean },
+): Mutation[] {
+  const account = findRow(data, "accounts", { id: goal.accountId });
+  if (!account) return [];
+  const own = activeGoals(goalsAfter).filter((g) => g.accountId === account.id);
+  const saved = allocatedFor(allocate(account.currentBalanceCents ?? 0, account.protectedAmountCents, own), goal.id);
+  return milestonesFor(goal.targetCents)
+    .filter((m) => saved >= m.cents && (opts.includeCompletion || m.kind !== "completion"))
+    .filter((m) => !data.goalMilestonesSeen.some((x) => x.goalId === goal.id && x.milestoneCents === m.cents))
+    .map((m) => ({ op: "upsert", table: "goalMilestonesSeen", row: { goalId: goal.id, milestoneCents: m.cents, seenAt: now } }) as Mutation);
+}
+
+/** Goals with the goal rows in `muts` applied (and any new ones added). */
+function withUpserts(goals: readonly Goal[], muts: readonly Mutation[]): Goal[] {
+  const rows = muts.filter((m) => m.table === "goals" && m.op === "upsert").map((m) => m.row as Goal);
+  return [...goals.map((g) => rows.find((r) => r.id === g.id) ?? g), ...rows.filter((r) => !goals.some((g) => g.id === r.id))];
+}
+
 // ---------------------------------------------------------------- create
 
 const createInput = z.object({
@@ -59,9 +90,10 @@ const createInput = z.object({
 
 export const createGoal = defineAction({
   name: "goals.create",
-  description: "Create a savings goal with a name, target amount and account, optionally a deadline and an expected contribution per period.",
+  description:
+    "Create a savings goal with a name, target amount and account, optionally a deadline and an expected contribution per period. Milestones the money already assigned to it covers count as celebrated; only later progress is celebrated.",
   input: createInput,
-  needs: ["goals", "accounts"],
+  needs: ["goals", "accounts", "goalMilestonesSeen"],
   examples: [
     { name: "Bike", accountId: "acc_hysa", targetCents: 120000 },
     { name: "DGX Spark", accountId: "acc_hysa", targetCents: 400000, deadline: "2027-06-01", expectedContributionCents: 30000, contributionPeriod: "monthly", priority: 1 },
@@ -107,6 +139,7 @@ export const createGoal = defineAction({
       if (g.priority !== p) muts.push(upsertGoal({ ...g, priority: p }));
     });
     muts.push(upsertGoal(goal));
+    muts.push(...alreadyReachedMilestones(data, goal, withUpserts(data.goals, muts), ctx.now, { includeCompletion: true }));
     return muts;
   },
 });
@@ -115,14 +148,15 @@ export const createGoal = defineAction({
 
 export const editGoal = defineAction({
   name: "goals.edit",
-  description: "Change a goal's name, target amount or account.",
+  description:
+    "Change a goal's name, target amount or account. Progress milestones of the new target (or on the new account) that are already covered count as celebrated; completion still celebrates.",
   input: z.object({
     goalId: idSchema,
     name: z.string().trim().min(1).max(80).optional(),
     targetCents: centsSchema.refine((c) => c > 0, { message: "Target must be more than $0" }).optional(),
     accountId: idSchema.optional(),
   }),
-  needs: ["goals", "accounts"],
+  needs: ["goals", "accounts", "goalMilestonesSeen"],
   describe(data, input) {
     const g = needGoal(data, input.goalId);
     const changes: Change[] = [];
@@ -140,14 +174,18 @@ export const editGoal = defineAction({
     }
     return { summary: `Edit goal "${g.name}"`, changes };
   },
-  apply(data, input) {
+  apply(data, input, ctx) {
     const g = needGoal(data, input.goalId);
     if (input.accountId !== undefined) needGoalAccount(data, input.accountId);
     const row: Goal = { ...g, ...defined(input) };
     if (input.accountId !== undefined && input.accountId !== g.accountId) {
       row.priority = activeGoals(data.goals).filter((x) => x.accountId === input.accountId).length + 1;
     }
-    return [upsertGoal(row)];
+    const muts = [upsertGoal(row)];
+    if (row.targetCents !== g.targetCents || row.accountId !== g.accountId) {
+      muts.push(...alreadyReachedMilestones(data, row, withUpserts(data.goals, muts), ctx.now, { includeCompletion: false }));
+    }
+    return muts;
   },
 });
 

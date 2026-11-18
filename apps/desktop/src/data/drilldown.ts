@@ -39,6 +39,7 @@ type Opener = (area: AreaId) => void;
 let opener: Opener | null = null;
 let lastDrillDown: DrillDownRequest | null = null;
 let lastMerchant: MerchantRequest | null = null;
+let lastItem: OpenItemRequest | null = null;
 
 /** The shell registers how to open/focus a window. */
 export function setWindowOpener(fn: Opener | null): void {
@@ -58,6 +59,7 @@ export function openMerchant(req: MerchantRequest): void {
 }
 
 export function openItem(req: OpenItemRequest): void {
+  lastItem = req;
   opener?.(req.area);
   window.dispatchEvent(new CustomEvent<OpenItemRequest>(OPEN_ITEM_EVENT, { detail: req }));
 }
@@ -72,5 +74,13 @@ export function takePendingDrillDown(): DrillDownRequest | null {
 export function takePendingMerchant(): MerchantRequest | null {
   const r = lastMerchant;
   lastMerchant = null;
+  return r;
+}
+
+/** The last `openItem` for `area`, if a window mounts after the event fired (cleared once taken). */
+export function takePendingItem(area: AreaId): OpenItemRequest | null {
+  if (!lastItem || lastItem.area !== area) return null;
+  const r = lastItem;
+  lastItem = null;
   return r;
 }

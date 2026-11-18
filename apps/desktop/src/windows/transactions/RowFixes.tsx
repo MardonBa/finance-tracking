@@ -8,6 +8,7 @@ import { toCents } from "@ft/core";
 import { useQuery } from "../../data/hooks.ts";
 import { Button, Input, SegmentedControl, Select, Toggle } from "../../ui/components.tsx";
 import { ActionFlowPanel, useActionFlow, type ActionFlow } from "./ActionFlow.tsx";
+import { dayLabel } from "../../data/dates.ts";
 import { money } from "./format.ts";
 import type { Row } from "./TxRow.tsx";
 
@@ -229,21 +230,69 @@ function RefundFix({ row, flow }: FixProps) {
   }
   const mine = (sugg.data?.value ?? []).filter((s) => s.refundTransactionId === row.transactionId);
   if (sugg.loading && !sugg.data) return <p className="tx-muted">Looking for the purchase…</p>;
-  if (mine.length === 0) {
-    // TODO(revisit): manual linking to any purchase (search) isn't offered yet; only suggestions.
-    return <p className="tx-muted">No purchase from {row.merchantName} of at least {money(row.amountCents)} in the 90 days before. It counts in the month it arrived.</p>;
-  }
+  const link = (purchaseTransactionId: string) =>
+    void flow.propose({ name: "flows.linkRefund", input: { refundTransactionId: row.transactionId, purchaseTransactionId } });
   return (
-    <div className="tx-fix">
-      {mine.map((s) => (
-        <Button
-          key={s.purchaseTransactionId}
-          size="sm"
-          onClick={() => void flow.propose({ name: "flows.linkRefund", input: { refundTransactionId: row.transactionId, purchaseTransactionId: s.purchaseTransactionId } })}
-        >
-          Link to the {money(Math.abs(s.purchaseCents))} purchase {s.daysApart} days earlier
-        </Button>
-      ))}
+    <div className="tx-fix tx-fix--column">
+      {mine.length === 0 ? (
+        <p className="tx-muted">No purchase from {row.merchantName} of at least {money(row.amountCents)} in the 90 days before, so it counts in the month it arrived. You can link it to any purchase below.</p>
+      ) : (
+        <div className="tx-fix">
+          {mine.map((s) => (
+            <Button key={s.purchaseTransactionId} size="sm" onClick={() => link(s.purchaseTransactionId)}>
+              Link to the {money(Math.abs(s.purchaseCents))} purchase {s.daysApart} days earlier
+            </Button>
+          ))}
+        </div>
+      )}
+      <PurchasePicker refund={row} onPick={link} />
+    </div>
+  );
+}
+
+/**
+ * Link a refund to any purchase by hand (§7 "link a refund"): search spending
+ * up to the refund's date by merchant, description, note or amount. Only
+ * purchases at least as big as the refund are offered, since a linked refund
+ * can't take a purchase below zero (§6).
+ */
+function PurchasePicker({ refund, onPick }: { refund: Row; onPick: (purchaseTransactionId: string) => void }) {
+  const [text, setText] = useState("");
+  const q = useQuery<{ rows: Row[] }>("transactions.list", {
+    buckets: ["spending"],
+    to: refund.date,
+    dateField: "date",
+    text: text.trim() || undefined,
+    measure: "amount",
+    limit: 50,
+  });
+  const fits = (q.data?.value.rows ?? []).filter((r) => r.amountCents < 0 && -r.amountCents >= refund.amountCents && r.transactionId !== refund.transactionId).slice(0, 8);
+  const year = refund.date.slice(0, 4);
+  return (
+    <div className="tx-fix tx-fix--column" role="group" aria-label="Find the purchase">
+      <Input
+        label="Find the purchase"
+        type="search"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="Merchant, description, note or amount"
+        hint={`Purchases up to ${dayLabel(refund.date, year)} of at least ${money(refund.amountCents)}.`}
+      />
+      {q.loading && !q.data ? (
+        <p className="tx-muted">Searching…</p>
+      ) : fits.length === 0 ? (
+        <p className="tx-muted">No purchase matches.</p>
+      ) : (
+        <ul className="tx-picker" aria-label="Matching purchases">
+          {fits.map((r) => (
+            <li key={r.transactionId}>
+              <Button size="sm" variant="ghost" onClick={() => onPick(r.transactionId)}>
+                Link to {r.merchantName} · {dayLabel(r.date, year)} · {money(Math.abs(r.amountCents))}
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

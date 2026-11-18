@@ -5,7 +5,8 @@ import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { InvestmentTransaction } from "@ft/core";
 import { basicFixture } from "@ft/core/fixtures";
-import { installCoreBackend, renderWithToken } from "../../test/coreBackend.tsx";
+import { installCoreBackend } from "../../test/coreBackend.tsx";
+import { renderWithToken } from "../../test/render.tsx";
 import { lastChart } from "../../test/chartStub.tsx";
 import { InvestmentsWindow } from "./InvestmentsWindow.tsx";
 
@@ -79,8 +80,8 @@ describe("Investments", () => {
     await userEvent.click(await screen.findByRole("tab", { name: "Performance" }));
     const table = await screen.findByRole("table", { name: "Performance per account" });
     // Put in = $18,000 on Sep 1 + $1,000 deposit = $19,000; value $21,545 → +$2,545 (+13.4%).
-    expect(within(table).getAllByRole("row")[1]!.textContent).toBe("Plaid Brokerage$19,000.00$21,545.00+$2,545.00 (+13.4%)Sep 1, 2026");
-    expect(within(table).getAllByRole("row").at(-1)!.textContent).toBe("Total$19,000.00$21,545.00+$2,545.00 (+13.4%)");
+    expect(within(table).getAllByRole("row")[1]!.textContent).toBe("Plaid Brokerage$19,000.00+$1,000.00$21,545.00+$2,545.00 (+13.4%)Sep 1, 2026");
+    expect(within(table).getAllByRole("row").at(-1)!.textContent).toBe("Total$19,000.00+$1,000.00$21,545.00+$2,545.00 (+13.4%)");
     await waitFor(() => expect(lastChart(/Plaid Brokerage value over time, history starts 2026-09-01/)).toBeTruthy());
     const option = lastChart(/Plaid Brokerage value over time/)!.option as { series: Array<{ markLine: { label: { formatter: string }; data: unknown[] } }> };
     expect(option.series[0]!.markLine.label.formatter).toBe("History starts");

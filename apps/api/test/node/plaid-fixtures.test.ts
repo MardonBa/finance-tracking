@@ -191,3 +191,25 @@ describe("trimming (§2 store only what is needed)", () => {
     }
   });
 });
+
+/** §1 "Sandbox test data covers the situations the math has to handle." */
+describe("the saved Sandbox data covers what the money math must handle (§1)", () => {
+  type Tx = { amount: number; pending: boolean; name: string; personal_finance_category?: { detailed?: string } | null };
+  const sync = fixtureFiles("sandbox")
+    .filter((f) => f.file === "transactions_sync.json")
+    .flatMap((f) => (load(f.path) as { added: Tx[] }).added);
+  const has = (detailed: RegExp, sign?: "in" | "out") =>
+    sync.some((t) => detailed.test(t.personal_finance_category?.detailed ?? "") && (sign === undefined || (sign === "in" ? t.amount < 0 : t.amount > 0)));
+
+  it.each([
+    ["transfers between my accounts (both halves)", () => has(/^TRANSFER_OUT_SAVINGS$/, "out") && has(/^TRANSFER_IN_ACCOUNT_TRANSFER$/, "in")],
+    ["credit card payments (both halves)", () => has(/CREDIT_CARD_PAYMENT/, "out") && has(/CREDIT_CARD_PAYMENT/, "in")],
+    ["refunds", () => sync.some((t) => /REFUND/i.test(t.name) && t.amount < 0)],
+    ["interest payments", () => has(/^INCOME_INTEREST_EARNED$/, "in")],
+    ["paychecks", () => has(/^INCOME_(SALARY|WAGES)$/, "in")],
+    ["pending transactions", () => sync.some((t) => t.pending)],
+    ["investment holdings", () => fixtureFiles("sandbox").some((f) => f.file === "investments_holdings_get.json" && (load(f.path) as { holdings: unknown[] }).holdings.length > 0)],
+  ] as const)("%s", (_what, check) => {
+    expect(check()).toBe(true);
+  });
+});

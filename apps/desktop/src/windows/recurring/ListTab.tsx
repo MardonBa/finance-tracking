@@ -6,6 +6,7 @@
  */
 import { useState } from "react";
 import { openDrillDown } from "../../data/drilldown.ts";
+import { useQuery } from "../../data/hooks.ts";
 import { Button, Card, EmptyState, Select, Tooltip } from "../../ui/components.tsx";
 import { FREQUENCY_LABELS, longDate, money, shortDate } from "../shared/format.ts";
 import { ReviewAndConfirm } from "../shared/ReviewAndConfirm.tsx";
@@ -112,7 +113,14 @@ function Section({ title, items, figures, setEditing, setRemoving }: {
   );
 }
 
+interface CardRow {
+  cardAccountId: string;
+  payingAccountId: string | null;
+}
+
 function CardPayingAccounts({ accounts, cardPayments }: { accounts: readonly AccountRow[]; cardPayments: readonly CardPayment[] }) {
+  // recurring.cards knows each card's paying account even when no statement is due.
+  const cardInfo = useQuery<{ cards: CardRow[] }>("recurring.cards", {});
   const cards = accounts.filter((a) => a.kind === "credit" && !a.hidden);
   const payers = accounts.filter((a) => !a.isDebt && !a.hidden && (a.kind === "checking" || a.kind === "savings" || a.kind === "cash"));
   const [choice, setChoice] = useState<Record<string, string>>({});
@@ -128,8 +136,8 @@ function CardPayingAccounts({ accounts, cardPayments }: { accounts: readonly Acc
       <div className="rti-stack" style={{ marginTop: "var(--space-3)" }}>
         {cards.map((c) => {
           const due = cardPayments.find((p) => p.cardAccountId === c.id);
-          // TODO(revisit): no query exposes a card's paying account when no statement is due, so it shows "Not set" then (the preview shows the real "before").
-          const current = choice[c.id] ?? due?.payingAccountId ?? "";
+          const saved = cardInfo.data?.value.cards.find((x) => x.cardAccountId === c.id)?.payingAccountId ?? due?.payingAccountId ?? "";
+          const current = choice[c.id] ?? saved;
           return (
             <div key={c.id} className="rti-stack">
               <div className="rti-row">
@@ -148,7 +156,7 @@ function CardPayingAccounts({ accounts, cardPayments }: { accounts: readonly Acc
                   </p>
                 )}
               </div>
-              {choice[c.id] !== undefined && choice[c.id] !== (due?.payingAccountId ?? "") && (
+              {choice[c.id] !== undefined && choice[c.id] !== saved && (
                 <ReviewAndConfirm
                   action="recurring.setCardPayingAccount"
                   input={{ cardAccountId: c.id, payingAccountId: choice[c.id] || null }}

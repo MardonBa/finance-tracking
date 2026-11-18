@@ -58,6 +58,12 @@ describe("authentication on every route (§2)", () => {
     for (const p of EXEMPT) expect(paths).toContain(p);
   });
 
+  it("no route moves money (§2): no payment, transfer-initiation, deposit or withdrawal endpoints", () => {
+    // Moving money between my own accounts is only ever *labelled* (flows.markTransfer etc.), through /a.
+    const moving = allRoutes().filter((r) => /pay(ment)?s?\b|\/transfers?\b|transfer\/|initiat|withdraw|deposit|wire|trade|\/orders?\b/i.test(r.path));
+    expect(moving).toEqual([]);
+  });
+
   const cases: Array<[string, string | null, Record<string, string>]> = [
     ["no credential", null, {}],
     ["a malformed header", null, { authorization: "Basic abc" }],

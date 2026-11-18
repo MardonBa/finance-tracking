@@ -8,10 +8,11 @@ import { useState } from "react";
 import { addMonths } from "@ft/core";
 import { useQuery } from "../../data/hooks.ts";
 import { Chart } from "../../ui/Chart.tsx";
-import { EmptyState, SegmentedControl, StatNumber } from "../../ui/components.tsx";
+import { SegmentedControl, StatNumber } from "../../ui/components.tsx";
 import { longDate, money, todayIso } from "../shared/format.ts";
 import { netWorthOption } from "./charts.ts";
 import type { Grain, NetWorthChart } from "./types.ts";
+import { ConnectEmptyState } from "../shared/ConnectEmptyState.tsx";
 
 const GROUPINGS = [
   { value: "account", label: "All accounts" },
@@ -31,7 +32,7 @@ export function NetWorthTab({ grain }: { grain: Grain }) {
   if (q.error && !chart) return <p className="rti-error">Couldn't load net worth: {q.error.message}</p>;
   if (!chart) return <p className="rti-note">Loading…</p>;
   if (chart.series.length === 0)
-    return <EmptyState icon="trajectory" title="No balance history yet" description="Net worth over time appears once accounts are connected and the daily snapshot has run." />;
+    return <ConnectEmptyState icon="trajectory" title="No balance history yet" description="Net worth over time appears once accounts are connected and the daily snapshot has run." />;
 
   return (
     <div className="rti-stack">

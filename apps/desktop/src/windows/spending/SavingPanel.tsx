@@ -5,11 +5,11 @@
  */
 import type { Spending } from "@ft/core";
 import { monthLong, monthShort } from "../../data/dates.ts";
-import { EmptyState } from "../../ui/components.tsx";
 import { color, seriesColors } from "../../ui/tokens.ts";
 import { money, moneyShort, pct } from "../transactions/format.ts";
 import { useFigures } from "./drill.ts";
 import { MiniBars } from "./MiniBars.tsx";
+import { ConnectEmptyState } from "../shared/ConnectEmptyState.tsx";
 
 export function SavingPanel({ month }: { month: string }) {
   const dest = useFigures<Spending.SavedDestination[]>("spending.savedByDestination", { endMonth: month, months: 6 });
@@ -42,7 +42,7 @@ export function SavingPanel({ month }: { month: string }) {
       <section>
         <h3 className="sp-h">Saved by destination</h3>
         {d.length === 0 ? (
-          <EmptyState icon="investments" title="No savings or investment accounts" description="Link a savings or brokerage account to see what you move into it each month." />
+          <ConnectEmptyState icon="investments" title="No savings or investment accounts" description="Link a savings or brokerage account to see what you move into it each month." />
         ) : (
           <div className="sp-dest">
             {d.map((x, i) => (

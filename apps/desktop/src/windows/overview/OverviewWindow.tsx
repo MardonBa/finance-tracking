@@ -25,6 +25,7 @@ import { computeAlerts, type OverviewAlert } from "./alerts.ts";
 import { useLowBalanceWarnings, warningSentence } from "../recurring/warnings.tsx";
 import { colorOfCategory, useCategoryColors } from "../../data/useCategoryColors.ts";
 import { GoalCelebrations } from "../goals/GoalCelebrations.tsx";
+import { explainWithAssistant, type ExplainFigure } from "../assistant/explain.ts";
 import { GoalPicture } from "../goals/GoalPicture.tsx";
 import { goalColor } from "../goals/goalColors.ts";
 import "../../dialogs/dialogs.css";
@@ -77,7 +78,8 @@ interface GoalCard {
   targetCents: number;
   percent: number;
   deadline: { aheadCents: number; overdue: boolean; label: string } | null;
-  contributions: Array<{ isCurrent: boolean; met: boolean | null; label: string }>;
+  /** Null when the goal has no expected contribution. */
+  contributions: Array<{ isCurrent: boolean; met: boolean | null; label: string }> | null;
   projection: { label: string } | null;
 }
 interface AccountRow {
@@ -109,11 +111,14 @@ function Section({
   children,
   loading,
   error,
+  explain,
 }: {
   title: string;
   className: string;
   onOpen?: () => void;
   openLabel?: string;
+  /** Adds an "Explain with the assistant" button (§16) for the card's main figure. */
+  explain?: ExplainFigure;
   children: ReactNode;
   loading?: boolean;
   /** The card's data couldn't load: say so instead of showing an empty card. */
@@ -123,8 +128,19 @@ function Section({
     <section className={`ov-card ${className}`} aria-busy={loading || undefined}>
       <header className="ov-card__header">
         <h3 className="ov-card__title">{title}</h3>
+        {explain && (
+          <button
+            type="button"
+            className="ov-card__open ov-card__explain"
+            onClick={() => explainWithAssistant(explain)}
+            aria-label={`Explain ${explain.label} with the assistant`}
+            title={`Explain ${explain.label} with the assistant`}
+          >
+            <Icon name="assistant" size={14} />
+          </button>
+        )}
         {onOpen && (
-          <button type="button" className="ov-card__open" onClick={onOpen} aria-label={openLabel ?? `Open ${title}`}>
+          <button type="button" className="ov-card__open" onClick={onOpen} aria-label={openLabel ?? `Open ${title}`} title={openLabel ?? `Open ${title}`}>
             <Icon name="chevronRight" size={14} />
           </button>
         )}
@@ -203,7 +219,7 @@ export function OverviewWindow() {
       else showConnectionPrompt();
     }
     else if (a.kind === "low-balance") openItem({ area: "recurring" });
-    // TODO(revisit): wire after merge — the Transactions window's item ids for its review lists are assumed.
+    // The Transactions window switches to "Needs a look" / "Balance check" on these item ids.
     else if (a.kind === "needs-a-look") openItem({ area: "transactions", itemId: "needs-a-look" });
     else openItem({ area: "transactions", itemId: "reconciliation" });
   };
@@ -325,7 +341,14 @@ function SpendingCard({ summary, byCat, month, today, staleCount }: { summary: Q
   const params = { from: monthStart(month), to: today, level: "primary" };
   const openSpending = () => openItem({ area: "spending" });
   return (
-    <Section title="Spending this month" className="ov-spending" onOpen={openSpending} openLabel="Open Spending" loading={!s && !summary.error}>
+    <Section
+      title="Spending this month"
+      className="ov-spending"
+      onOpen={openSpending}
+      openLabel="Open Spending"
+      loading={!s && !summary.error}
+      explain={{ query: "spending.monthlySummary", params: { month, usualMonths: 3 }, figureId: "spending", label: "this month's spending" }}
+    >
       <button
         type="button"
         className="ov-big ov-click"
@@ -594,7 +617,7 @@ function goalStatus(g: GoalCard): { status: Status; text: string } {
     if (g.deadline.overdue) return { status: "over", text: "Past deadline" };
     return g.deadline.aheadCents >= 0 ? { status: "on-track", text: "On track" } : { status: "warning", text: "Behind" };
   }
-  const current = g.contributions.find((c) => c.isCurrent);
+  const current = g.contributions?.find((c) => c.isCurrent);
   if (current && current.met === false) return { status: "warning", text: "Behind" };
   if (current && current.met === true) return { status: "on-track", text: "On track" };
   return { status: "on-track", text: g.projection?.label ?? "Saving" };
