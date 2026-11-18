@@ -128,6 +128,7 @@ function CardPayingAccounts({ accounts, cardPayments }: { accounts: readonly Acc
       <div className="rti-stack" style={{ marginTop: "var(--space-3)" }}>
         {cards.map((c) => {
           const due = cardPayments.find((p) => p.cardAccountId === c.id);
+          // TODO(revisit): no query exposes a card's paying account when no statement is due, so it shows "Not set" then (the preview shows the real "before").
           const current = choice[c.id] ?? due?.payingAccountId ?? "";
           return (
             <div key={c.id} className="rti-stack">

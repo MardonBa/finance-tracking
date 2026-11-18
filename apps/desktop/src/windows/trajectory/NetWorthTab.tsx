@@ -21,6 +21,7 @@ const GROUPINGS = [
 export function NetWorthTab({ grain }: { grain: Grain }) {
   const [grouping, setGrouping] = useState<"account" | "type">("account");
   const to = todayIso();
+  // TODO(revisit): month view covers 24 months (month-end points), year view 10 years (year-end points).
   const from = addMonths(to, grain === "year" ? -120 : -24);
   const q = useQuery<NetWorthChart>("balances.netWorthChart", { from, to, grouping, fill: "carry", includeHidden: false });
   const chart = q.data?.value;
@@ -50,7 +51,7 @@ export function NetWorthTab({ grain }: { grain: Grain }) {
       )}
       <details className="rti-details" open>
         <summary>Where each account's history starts</summary>
-        <ul>
+        <ul aria-label="Where each account's history starts">
           {chart.historyStarts.map((h) => (
             <li key={h.accountId}>
               <b>{h.label}</b>: {h.startsOn ? `history starts here, ${longDate(h.startsOn)}` : "no history yet"}. {h.reason}

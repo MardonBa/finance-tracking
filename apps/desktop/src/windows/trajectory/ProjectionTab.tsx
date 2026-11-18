@@ -36,6 +36,7 @@ interface UsualValue {
 
 export function ProjectionTab() {
   const [horizon, setHorizon] = useState<"1" | "20" | "30" | "40">("30");
+  // TODO(revisit): opens on 30 years in today's dollars; usual income/spending = average of the last 3 full months.
   const [todaysDollars, setTodaysDollars] = useState(true);
   const [panel, setPanel] = useState<"assumptions" | "phases">("assumptions");
   const stored = useQuery<AssumptionsValue>("trajectory.assumptions", {});
