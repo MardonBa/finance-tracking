@@ -77,7 +77,7 @@ Production D1 `ft-prod` and R2 `ft-backups-prod` were created on 2026-11-18 and 
 - [ ] Hit the limit (or set `AI_RPM_LIMIT = "1"` locally and ask twice quickly): a friendly message says when it can be used again; the rest of the app keeps working.
 - [ ] Check this project's real Gemini free-tier limits in AI Studio and set `AI_RPM_LIMIT` / `AI_RPD_LIMIT` to match; confirm the chosen model (`GEMINI_MODEL`) is still available.
 ## Verification (Phase 4)
-- [ ] `npm run dev`: edit a window's text and an API route; the app updates in place and the local Worker reloads, with no restart.
+- [x] `npm run dev`: edit a window's text and an API route; the app updates in place and the local Worker reloads, with no restart. (checked by the orchestrator 2026-11-18)
 - [ ] Glance at each window at its default size: it answers the question in its dock tooltip (hover the dock icon), with one main chart or list and details behind tabs or clicks.
 - [ ] Hover, keyboard focus (Tab), press and disabled states look consistent on buttons, tabs, toggles and dock items (`#styleguide` in a dev build shows them side by side).
 - [ ] Time the Overview after Touch ID on your Mac and connection: data within about a second.

@@ -3,7 +3,7 @@
 **Status:** Complete (all 17 areas defined; each lists what's still open)
 **Last updated:** 2026-11-18
 **Related:** [decisions.md](../../decisions.md), [design.md](./design.md)
-**Build status (2026-11-18):** 181 of 238 boxes ticked with automated evidence ([criteria-verification.md](./criteria-verification.md)). The other 57 need a hands-on check on the [manual checklist](./manual-checklist.md) (real Touch ID, browser sign-in, real banks, production) and get ticked once you've confirmed them.
+**Build status (2026-11-18):** 183 of 238 boxes ticked with automated evidence ([criteria-verification.md](./criteria-verification.md)). The other 55 need a hands-on check on the [manual checklist](./manual-checklist.md) (real Touch ID, browser sign-in, real banks, production) and get ticked once you've confirmed them.
 
 What "done" and "working well" look like for every part of the app that needs building. [design.md](./design.md) describes *what* each part is; this doc defines how we'll know it's finished. Each section is written from an interview answer, then turned into checkable outcomes.
 
@@ -37,8 +37,8 @@ Every area below should serve at least one of these four outcomes.
 **Done when:**
 
 *Fast feedback*
-- [ ] Editing frontend code updates the running app instantly (hot reload); editing backend code reloads the local backend without a manual restart.
-- [ ] The app and backend can run locally against the dev environment with one command.
+- [x] Editing frontend code updates the running app instantly (hot reload); editing backend code reloads the local backend without a manual restart.
+- [x] The app and backend can run locally against the dev environment with one command.
 - [x] Shipping is a short, documented routine: deploy the backend and build a new `.app` in a few commands, so a finished change can be in daily use the same day.
 
 *Correct, deterministic money math*

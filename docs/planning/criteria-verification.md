@@ -26,8 +26,8 @@ Paths: `core/` = `packages/core/test/`, `api/` = `apps/api/test/`, `app/` = `app
 
 | Criterion | Status | Evidence |
 |---|---|---|
-| Frontend hot reload; backend reloads without restart | 🧑 | Vite HMR seen in the Phase 4 smoke (`[vite] hot updated: …` after each edit); `wrangler dev` reloads on save. M: "`npm run dev`: edit a window's text and a route; both update without restarting" |
-| App and backend run locally with one command | 🧑 | Root `npm run dev` (concurrently: `dev:api` + `dev:app`). M: "`npm run dev` with an empty Keychain…" |
+| Frontend hot reload; backend reloads without restart | ✅ | Checked by the orchestrator 2026-11-18 on this Mac: during `npm run dev`, a frontend edit logged `[vite] hmr update` (Fast Refresh, after un-exporting a helper from `shell/Window.tsx` that forced invalidation) and a backend edit logged `⎔ Reloading local server… updated and ready`. Vite HMR seen in the Phase 4 smoke (`[vite] hot updated: …` after each edit); `wrangler dev` reloads on save. M: "`npm run dev`: edit a window's text and a route; both update without restarting" |
+| App and backend run locally with one command | ✅ | Checked by the orchestrator 2026-11-18: one `npm run dev` brought up wrangler (`/health` ok on :8787), Vite (:1420) and the Tauri app process. Root `npm run dev` (concurrently: `dev:api` + `dev:app`). M: "`npm run dev` with an empty Keychain…" |
 | Shipping is a short documented routine | ✅ | `docs/shipping.md` (three `ship:*` commands); `api/node/shipping.test.ts` "there are ship scripts for the dev and production Worker and the app", "deploys apply migrations first and always name the environment" |
 | Whole cents; Plaid decimals converted once and tested | ✅ | `core/money.test.ts` "toCents › converts the number %s to %s cents", "rejects invalid input"; `api/node/plaid-fixtures.test.ts` "a full Sandbox-shaped sync response keeps only the stored transaction fields" (amountCents from 12.34) |
 | Money calculations are pure functions | ✅ | `core/purity.test.ts` "no source file reads the clock, the network or randomness", "the checker catches every banned pattern" |
