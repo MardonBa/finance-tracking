@@ -175,6 +175,8 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_deep_link::init())
+        // Goal pictures live on this Mac only (app data dir, §11); never uploaded.
+        .plugin(tauri_plugin_fs::init())
         .manage(Session::default())
         .setup(|app| {
             let handle = app.handle().clone();

@@ -8,6 +8,18 @@
   "permissions": [
     "core:default",
     "opener:default",
-    "deep-link:default"
+    "deep-link:default",
+    "fs:allow-read-file",
+    "fs:allow-write-file",
+    "fs:allow-mkdir",
+    "fs:allow-exists",
+    "fs:allow-remove",
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        { "path": "$APPDATA/goal-pictures" },
+        { "path": "$APPDATA/goal-pictures/**" }
+      ]
+    }
   ]
 }

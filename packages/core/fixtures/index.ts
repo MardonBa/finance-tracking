@@ -16,3 +16,6 @@ export function basicFixture(): Fixture {
   const { today, data } = JSON.parse(JSON.stringify(basic)) as Fixture;
   return { today, data };
 }
+
+export { flowsFixture, type FlowsFixture } from "./flows.ts";
+export { goalsFixture, type GoalsFixture } from "./goals.ts";
