@@ -21,7 +21,7 @@
     "ship:check": "npm run typecheck && npm test",
     "ship:api:dev": "npm run ship:check && cd apps/api && npx wrangler d1 migrations apply DB --remote --env dev && npx wrangler deploy --env dev --var PUBLIC_API_URL:https://ft-api-dev.ft-api.workers.dev",
     "ship:api:prod": "npm run ship:check && cd apps/api && npx wrangler d1 migrations apply DB --remote --env production && npx wrangler deploy --env production",
-    "ship:app": "npm run ship:check && node scripts/require-env.mjs VITE_API_URL && cd apps/desktop && npm run tauri build",
+    "ship:app": "npm run ship:check && node scripts/require-env.mjs VITE_API_URL && cd apps/desktop && PATH=\"$HOME/.cargo/bin:$PATH\" npm run tauri build",
     "gen:secrets": "node scripts/gen-secrets.mjs",
     "sync:dev-vars": "node scripts/sync-dev-vars.mjs",
     "reset:dev": "node scripts/reset-dev.mjs",
