@@ -1,0 +1,146 @@
+{
+  "accounts": [
+    {
+      "account_id": "vLjWWQepGLiwyz3VpobPTVXaDLnJl7ioxy4Aj",
+      "apy": null,
+      "balances": {
+        "available": null,
+        "current": 21045,
+        "iso_currency_code": "USD",
+        "limit": null,
+        "margin_loan_amount": null,
+        "unofficial_currency_code": null
+      },
+      "holder_category": "personal",
+      "mask": "0505",
+      "name": "Brokerage",
+      "official_name": "Individual Brokerage",
+      "subtype": "brokerage",
+      "type": "investment"
+    }
+  ],
+  "holdings": [
+    {
+      "account_id": "vLjWWQepGLiwyz3VpobPTVXaDLnJl7ioxy4Aj",
+      "cost_basis": 60,
+      "institution_price": 64.3,
+      "institution_price_as_of": "2026-11-18",
+      "institution_price_datetime": null,
+      "institution_value": 6140.65,
+      "iso_currency_code": "USD",
+      "quantity": 95.5,
+      "security_id": "EDRxkXxj7mt5dQLzoJkecqpy7KyNDBuZGWnGn",
+      "tax_lots": [],
+      "unofficial_currency_code": null,
+      "vested_quantity": null,
+      "vested_value": null
+    },
+    {
+      "account_id": "vLjWWQepGLiwyz3VpobPTVXaDLnJl7ioxy4Aj",
+      "cost_basis": 250,
+      "institution_price": 298.51,
+      "institution_price_as_of": "2026-11-18",
+      "institution_price_datetime": null,
+      "institution_value": 14925.5,
+      "iso_currency_code": "USD",
+      "quantity": 50,
+      "security_id": "xnL3QM3Ax4fP9qwEzqKwSDaMkVMqN3fmx5LZ7",
+      "tax_lots": [],
+      "unofficial_currency_code": null,
+      "vested_quantity": null,
+      "vested_value": null
+    }
+  ],
+  "item": {
+    "available_products": [
+      "assets",
+      "auth",
+      "balance",
+      "cra_base_report",
+      "cra_income_complete",
+      "cra_income_insights",
+      "identity",
+      "identity_match",
+      "income_verification",
+      "investments_auth",
+      "liabilities",
+      "protect_linked_bank",
+      "protect_transactions",
+      "signal",
+      "statements",
+      "transactions_refresh",
+      "transfer"
+    ],
+    "billed_products": [
+      "investments",
+      "recurring_transactions",
+      "transactions"
+    ],
+    "consent_expiration_time": null,
+    "error": null,
+    "institution_id": "ins_109508",
+    "institution_name": "First Platypus Bank",
+    "item_id": "3a7XX5kQlasmDybKJzB4TWevoWRMKotwQyw3w",
+    "products": [
+      "investments",
+      "transactions"
+    ],
+    "update_type": "background",
+    "webhook": ""
+  },
+  "request_id": "67f1127553062c2",
+  "securities": [
+    {
+      "cfi_code": "CEOJLS",
+      "close_price": 80.11,
+      "close_price_as_of": "2026-11-17",
+      "cusip": null,
+      "figi": "BBG001F8JPK5",
+      "fixed_income": null,
+      "industry": "Investment Trusts or Mutual Funds",
+      "institution_id": null,
+      "institution_security_id": null,
+      "is_cash_equivalent": false,
+      "isin": null,
+      "iso_currency_code": "USD",
+      "market_identifier_code": "XNAS",
+      "name": "Vanguard Star Funds - Vanguard Total International Stock ETF",
+      "option_contract": null,
+      "proxy_security_id": null,
+      "sector": "Miscellaneous",
+      "security_id": "EDRxkXxj7mt5dQLzoJkecqpy7KyNDBuZGWnGn",
+      "sedol": null,
+      "subtype": "etf",
+      "ticker_symbol": "VXUS",
+      "type": "etf",
+      "unofficial_currency_code": null,
+      "update_datetime": null
+    },
+    {
+      "cfi_code": "CEOJLS",
+      "close_price": 360.19,
+      "close_price_as_of": "2026-11-17",
+      "cusip": null,
+      "figi": "BBG000HRBDF4",
+      "fixed_income": null,
+      "industry": "Investment Trusts or Mutual Funds",
+      "institution_id": null,
+      "institution_security_id": null,
+      "is_cash_equivalent": false,
+      "isin": null,
+      "iso_currency_code": "USD",
+      "market_identifier_code": "ARCX",
+      "name": "Vanguard Index Funds - Vanguard Morningstar Total Stock Market ETF",
+      "option_contract": null,
+      "proxy_security_id": null,
+      "sector": "Miscellaneous",
+      "security_id": "xnL3QM3Ax4fP9qwEzqKwSDaMkVMqN3fmx5LZ7",
+      "sedol": null,
+      "subtype": "etf",
+      "ticker_symbol": "VTI",
+      "type": "etf",
+      "unofficial_currency_code": null,
+      "update_datetime": null
+    }
+  ]
+}

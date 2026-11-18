@@ -1,0 +1,99 @@
+{
+  "seed": "ft-investor-v1",
+  "roll_dates_forward": true,
+  "override_accounts": [
+    {
+      "type": "investment",
+      "subtype": "brokerage",
+      "starting_balance": 21045.0,
+      "currency": "USD",
+      "meta": {
+        "name": "Brokerage",
+        "official_name": "Individual Brokerage",
+        "mask": "0505"
+      },
+      "holdings": [
+        {
+          "institution_price": 298.51,
+          "institution_price_as_of": "2026-10-31",
+          "cost_basis": 250.0,
+          "quantity": 50.0,
+          "currency": "USD",
+          "security": {
+            "ticker_symbol": "VTI",
+            "name": "Vanguard Total Stock Market ETF",
+            "currency": "USD"
+          }
+        },
+        {
+          "institution_price": 64.3,
+          "institution_price_as_of": "2026-10-31",
+          "cost_basis": 60.0,
+          "quantity": 95.5,
+          "currency": "USD",
+          "security": {
+            "ticker_symbol": "VXUS",
+            "name": "Vanguard Total International Stock ETF",
+            "currency": "USD"
+          }
+        }
+      ],
+      "investment_transactions": [
+        {
+          "date": "2026-10-02",
+          "name": "ACH DEPOSIT",
+          "quantity": -1000.0,
+          "price": 1.0,
+          "fees": 0.0,
+          "type": "cash",
+          "currency": "USD",
+          "security": {
+            "ticker_symbol": "CUR:USD",
+            "currency": "USD"
+          }
+        },
+        {
+          "date": "2026-10-03",
+          "name": "BUY VTI",
+          "quantity": 3.0,
+          "price": 290.0,
+          "fees": 0.0,
+          "type": "buy",
+          "currency": "USD",
+          "security": {
+            "ticker_symbol": "VTI",
+            "name": "Vanguard Total Stock Market ETF",
+            "currency": "USD"
+          }
+        },
+        {
+          "date": "2026-10-29",
+          "name": "VTI DIVIDEND",
+          "quantity": -31.5,
+          "price": 1.0,
+          "fees": 0.0,
+          "type": "cash",
+          "currency": "USD",
+          "security": {
+            "ticker_symbol": "CUR:USD",
+            "currency": "USD"
+          }
+        },
+        {
+          "date": "2026-10-20",
+          "name": "SELL VXUS",
+          "quantity": -4.5,
+          "price": 63.0,
+          "fees": 0.0,
+          "type": "sell",
+          "currency": "USD",
+          "security": {
+            "ticker_symbol": "VXUS",
+            "name": "Vanguard Total International Stock ETF",
+            "currency": "USD"
+          }
+        }
+      ]
+    }
+  ]
+}

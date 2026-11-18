@@ -1,0 +1,59 @@
+{
+  "accounts": [
+    {
+      "account_id": "vLjWWQepGLiwyz3VpobPTVXaDLnJl7ioxy4Aj",
+      "apy": null,
+      "balances": {
+        "available": null,
+        "current": 21045,
+        "iso_currency_code": "USD",
+        "limit": null,
+        "unofficial_currency_code": null
+      },
+      "holder_category": "personal",
+      "mask": "0505",
+      "name": "Brokerage",
+      "official_name": "Individual Brokerage",
+      "subtype": "brokerage",
+      "type": "investment"
+    }
+  ],
+  "item": {
+    "available_products": [
+      "assets",
+      "auth",
+      "balance",
+      "cra_base_report",
+      "cra_income_complete",
+      "cra_income_insights",
+      "identity",
+      "identity_match",
+      "income_verification",
+      "investments_auth",
+      "liabilities",
+      "protect_linked_bank",
+      "protect_transactions",
+      "recurring_transactions",
+      "signal",
+      "statements",
+      "transactions_refresh",
+      "transfer"
+    ],
+    "billed_products": [
+      "investments",
+      "transactions"
+    ],
+    "consent_expiration_time": null,
+    "error": null,
+    "institution_id": "ins_109508",
+    "institution_name": "First Platypus Bank",
+    "item_id": "3a7XX5kQlasmDybKJzB4TWevoWRMKotwQyw3w",
+    "products": [
+      "investments",
+      "transactions"
+    ],
+    "update_type": "background",
+    "webhook": ""
+  },
+  "request_id": "5cdadda609fdabc"
+}

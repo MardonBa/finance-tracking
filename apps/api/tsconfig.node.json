@@ -1,7 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "types": ["node"],
+    "types": ["node", "@cloudflare/workers-types"],
     "allowImportingTsExtensions": true
   },
   "include": ["vitest.*.ts", "drizzle.config.ts", "seed/**/*.ts", "test/node/**/*.ts", "scripts/**/*.ts"]

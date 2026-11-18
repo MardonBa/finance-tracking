@@ -1,0 +1,193 @@
+{
+  "seed": "ft-everyday-bank-v1",
+  "roll_dates_forward": true,
+  "override_accounts": [
+    {
+      "type": "depository",
+      "subtype": "checking",
+      "starting_balance": 4200.5,
+      "currency": "USD",
+      "meta": {
+        "name": "Everyday Checking",
+        "official_name": "Everyday Checking",
+        "mask": "0101"
+      },
+      "transactions": [
+        {
+          "date_transacted": "2026-10-04",
+          "date_posted": "2026-10-04",
+          "amount": -2500.0,
+          "description": "ACME CORP PAYROLL PPD ID: 1234",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-10-18",
+          "date_posted": "2026-10-18",
+          "amount": -2500.0,
+          "description": "ACME CORP PAYROLL PPD ID: 1234",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-10-05",
+          "date_posted": "2026-10-05",
+          "amount": 500.0,
+          "description": "ONLINE TRANSFER TO SAV XXXX0202",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-10-06",
+          "date_posted": "2026-10-06",
+          "amount": 1850.0,
+          "description": "OAKWOOD APARTMENTS RENT",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-10-12",
+          "date_posted": "2026-10-12",
+          "amount": -120.0,
+          "description": "VENMO CASHOUT FROM ALEX",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-10-13",
+          "date_posted": "2026-10-13",
+          "amount": 80.0,
+          "description": "VENMO PAYMENT TO SAM",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-10-14",
+          "date_posted": "2026-10-14",
+          "amount": 60.0,
+          "description": "ATM WITHDRAWAL 123 MAIN ST",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-10-25",
+          "date_posted": "2026-10-25",
+          "amount": 612.34,
+          "description": "PAYMENT TO EVERYDAY CREDIT CARD XXXX0303",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-10-31",
+          "date_posted": "2026-10-31",
+          "amount": -0.39,
+          "description": "INTEREST PAYMENT",
+          "currency": "USD"
+        }
+      ]
+    },
+    {
+      "type": "depository",
+      "subtype": "savings",
+      "starting_balance": 10000.0,
+      "currency": "USD",
+      "meta": {
+        "name": "High Yield Savings",
+        "official_name": "High Yield Savings",
+        "mask": "0202",
+        "apy": 4.1
+      },
+      "transactions": [
+        {
+          "date_transacted": "2026-10-06",
+          "date_posted": "2026-10-06",
+          "amount": -500.0,
+          "description": "ONLINE TRANSFER FROM CHK XXXX0101",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-10-31",
+          "date_posted": "2026-10-31",
+          "amount": -36.08,
+          "description": "INTEREST PAYMENT",
+          "currency": "USD"
+        }
+      ]
+    },
+    {
+      "type": "credit",
+      "subtype": "credit card",
+      "starting_balance": 431.1,
+      "currency": "USD",
+      "meta": {
+        "name": "Everyday Credit Card",
+        "official_name": "Everyday Rewards Card",
+        "mask": "0303",
+        "limit": 5000
+      },
+      "liability": {
+        "type": "credit",
+        "purchase_apr": 24.99,
+        "last_statement_balance": 431.1,
+        "minimum_payment_amount": 35.0,
+        "is_overdue": false
+      },
+      "inflow_model": {
+        "type": "monthly-balance-payment",
+        "payment_day_of_month": 25,
+        "statement_day_of_month": 10,
+        "transaction_name": "PAYMENT THANK YOU"
+      },
+      "transactions": [
+        {
+          "date_transacted": "2026-10-07",
+          "date_posted": "2026-10-08",
+          "amount": 89.5,
+          "description": "SQ *BLUE BOTTLE COFFEE",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-10-09",
+          "date_posted": "2026-10-10",
+          "amount": 129.99,
+          "description": "AMAZON MKTP US*2K4AB1CD0",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-10-20",
+          "date_posted": "2026-10-21",
+          "amount": -29.99,
+          "description": "AMAZON.COM REFUND",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-10-15",
+          "date_posted": "2026-10-16",
+          "amount": 412.84,
+          "description": "WHOLE FOODS MARKET #10233",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-10-26",
+          "date_posted": "2026-10-26",
+          "amount": -612.34,
+          "description": "PAYMENT THANK YOU",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-10-11",
+          "date_posted": "2026-10-12",
+          "amount": 15.49,
+          "description": "NETFLIX.COM",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-10-22",
+          "date_posted": "2026-10-23",
+          "amount": 64.2,
+          "description": "SHELL OIL 5744",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-10-30",
+          "date_posted": "2026-11-03",
+          "amount": 45.67,
+          "description": "TRADER JOE'S #123",
+          "currency": "USD"
+        }
+      ]
+    }
+  ]
+}

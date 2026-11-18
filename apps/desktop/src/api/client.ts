@@ -9,12 +9,11 @@ import type { ActionPreview, Figure } from "@ft/core";
 export const API_URL: string = import.meta.env.VITE_API_URL ?? "http://localhost:8787";
 
 export class ApiError extends Error {
-  constructor(
-    readonly status: number,
-    message: string,
-  ) {
+  readonly status: number;
+  constructor(status: number, message: string) {
     super(message);
     this.name = "ApiError";
+    this.status = status;
   }
 }
 
