@@ -109,7 +109,7 @@ export function errorMessage(e: unknown, fallback = "Something went wrong."): st
   return fallback;
 }
 
-/** Whether a connection should be prompted about right after Touch ID (§4): sign-in needed, expiring, revoked, or an error. */
+/** Whether a connection should be prompted about right after Touch ID (§4): sign-in needed, expiring, revoked, or an error. TODO(revisit): transient errors (bank down) also prompt; the API could flag them. */
 export function needsAttention(c: ConnectionHealth): boolean {
   return c.needsReconnect || c.status === "error";
 }

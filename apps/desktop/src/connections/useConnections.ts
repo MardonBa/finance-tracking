@@ -74,7 +74,7 @@ export function relativeTime(iso: string | null, nowMs: number = Date.now()): st
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-/** A bank counts as out of date when it needs attention or hasn't updated in 2 days (the daily sync missed). */
+/** A bank counts as out of date when it needs attention or hasn't updated in 2 days (the daily sync missed). TODO(revisit): 48 h assumed. */
 export const STALE_AFTER_MS = 48 * 60 * 60 * 1000;
 
 export function isOutOfDate(c: ConnectionHealth, nowMs: number = Date.now()): boolean {
