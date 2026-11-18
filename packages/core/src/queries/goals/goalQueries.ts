@@ -67,6 +67,9 @@ function goalCards(data: GoalData, today: IsoDate) {
         targetCents: g.targetCents,
         percent: g.targetCents > 0 ? Math.min(100, (saved * 100) / g.targetCents) : 0,
         completedAt: g.completedAt,
+        createdAt: g.createdAt,
+        /** The goal's own settings, for edit forms. */
+        plan: { deadline: g.deadline, expectedContributionCents: g.expectedContributionCents, contributionPeriod: g.contributionPeriod },
         recentMonthlyRateCents: recentMonthlyRate(savedAt, today, { notBefore: createdDay(g) }),
         accountMonthlyRateCents: accountRate,
         deadline: g.deadline
