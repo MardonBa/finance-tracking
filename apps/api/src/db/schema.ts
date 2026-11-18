@@ -52,6 +52,8 @@ export const plaidItems = sqliteTable(
     lastSuccessfulUpdateAt: text("last_successful_update_at"), // Plaid's last successful update, shown as "last updated" (§4)
     lastSyncedAt: text("last_synced_at"), // our own last sync time, the fallback for "last updated" (§4, decision 006)
     createdAt: text("created_at").notNull(), // when the bank was connected; investment history starts here (§5, §17)
+    transactionsUpdateStatus: text("transactions_update_status"), // backend-only: Plaid's history download state (HISTORICAL_UPDATE_COMPLETE…) behind "Importing transactions…" → "Up to date" (§3)
+    refreshAvailableAt: text("refresh_available_at"), // backend-only: when Plaid's refresh rate limit allows Refresh again, so the button can say when (§4 Open)
   },
   (t) => [uniqueIndex("plaid_items_plaid_item_id_uq").on(t.plaidItemId)],
 );
@@ -522,6 +524,27 @@ export const appCredentials = sqliteTable(
     revokedAt: text("revoked_at"), // revoked credentials stop working immediately (§2)
   },
   (t) => [uniqueIndex("app_credentials_token_hash_uq").on(t.tokenHash)],
+);
+
+export const LINK_SESSION_MODES = ["new", "update"] as const;
+export const LINK_SESSION_STATUSES = ["pending", "finalizing", "duplicate", "done", "cancelled", "failed"] as const;
+
+export const linkSessions = sqliteTable(
+  "link_sessions",
+  {
+    id: text("id").primaryKey(), // our session id; the redirect page and the app's deep link carry it, never a Plaid token (§3)
+    linkToken: text("link_token").notNull(), // Plaid link token (expires within hours, useless without our Plaid secret); needed for /link/token/get to collect the result (§3)
+    mode: text("mode", { enum: LINK_SESSION_MODES }).notNull(), // new bank or update mode for a reconnect (§3, §4)
+    itemId: text("item_id").references(() => plaidItems.id), // the connection being repaired in update mode (§4); for new banks, the item created once finished
+    status: text("status", { enum: LINK_SESSION_STATUSES }).notNull(), // pending → done / cancelled / failed / duplicate (awaiting my choice); nothing is half-saved (§3)
+    errorCode: text("error_code"), // why it failed or was cancelled, shown so I can try again (§3)
+    pendingAccessTokenEnc: text("pending_access_token_enc"), // AES-GCM ciphertext (TOKEN_ENC_KEY) held only while I decide about a duplicate bank; cleared after (§3)
+    pendingResultJson: text("pending_result_json"), // trimmed item + accounts (no identity) awaiting the duplicate decision (§3)
+    expiresAt: text("expires_at").notNull(), // link token expiry; later lookups are refused (§3)
+    createdAt: text("created_at").notNull(), // when Link was opened
+    finishedAt: text("finished_at"), // when the outcome was recorded (§3 import status)
+  },
+  (t) => [uniqueIndex("link_sessions_link_token_uq").on(t.linkToken)],
 );
 
 export const actionLog = sqliteTable(

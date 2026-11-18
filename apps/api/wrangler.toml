@@ -25,6 +25,11 @@ PLAID_ENV = "sandbox"
 # IANA zone used to compute "today" for the user (cron, queries).
 # TODO(revisit): assumed America/New_York; set to the user's real zone.
 USER_TIME_ZONE = "America/New_York"
+# Public base URL of this Worker: Plaid's webhook target and the Hosted Link
+# redirect page. Local `wrangler dev` is not reachable by Plaid, so webhooks
+# only arrive on the deployed dev Worker.
+# TODO(revisit): set to the deployed dev Worker URL (https://ft-api-dev.<subdomain>.workers.dev).
+PUBLIC_API_URL = "http://localhost:8787"
 
 [[env.dev.d1_databases]]
 binding = "DB"
@@ -37,9 +42,11 @@ binding = "BACKUPS"
 bucket_name = "ft-backups-dev"
 
 [env.dev.triggers]
-# Daily sync, 11:00 UTC (early morning in US time zones).
+# Daily sync + snapshots, 11:00 UTC (early morning in US time zones).
 # TODO(revisit): sync time is an open question in success-criteria §4.
-crons = ["0 11 * * *"]
+# Weekly encrypted backup to R2, Sundays 12:00 UTC (§2 Nothing is lost).
+# TODO(revisit): backup schedule is an open question in success-criteria §2.
+crons = ["0 11 * * *", "0 12 * * SUN"]
 
 # ------------------------------------------------------------------ production
 [env.production]
@@ -50,6 +57,8 @@ workers_dev = true
 ENVIRONMENT = "production"
 PLAID_ENV = "production"
 USER_TIME_ZONE = "America/New_York"
+# TODO(revisit): PLACEHOLDER (Phase 4): the production Worker URL.
+PUBLIC_API_URL = "https://ft-api.example.workers.dev"
 
 [[env.production.d1_databases]]
 binding = "DB"
@@ -64,4 +73,4 @@ binding = "BACKUPS"
 bucket_name = "ft-backups-prod"
 
 [env.production.triggers]
-crons = ["0 11 * * *"]
+crons = ["0 11 * * *", "0 12 * * SUN"]
