@@ -108,3 +108,27 @@ Defaults chosen while building the Transactions and Spending windows (each marke
 - **Earning vs spending by year** drills down through `flows.income` / `spending.byCategory` totals for the calendar year (no year figures in `spending.cashFlow`); year view covers the last 36 months.
 - **Overview hook:** `windows/recurring/warnings.tsx` exports `useLowBalanceWarnings()` and `<LowBalanceWarnings onOpen />` (renders nothing when every account is covered).
 - **Shared bits:** `windows/shared/` (format helpers, `ReviewAndConfirm`: a Review button that opens the shared `ui/ActionConfirm` card, layout CSS) and `src/test/` (in-process core backend for window tests, chart stub). `src/test/coreBackend.tsx` overlaps main's `windows/testing/`; merge the two later.
+
+## Phase 3: ai-assistant
+
+Defaults chosen while building the assistant (§16; each marked `TODO(revisit):` in code where it lives).
+
+- **Model:** the spec'd `gemini-2.5-flash` / `-flash-lite` return 404 "no longer available to new users" for this key, so `wrangler.toml` sets `GEMINI_MODEL = "gemini-3.8-flash"` and `GEMINI_FALLBACK_MODEL = "gemini-3.5-flash-lite"`. The fallback is used on a 429 and on a 404. Code defaults are still the 2.5 names (`apps/api/src/ai/harness.ts`).
+- **Free-tier limits:** our own D1 budget defaults to 10 requests/minute and 250/day (`AI_RPM_LIMIT`, `AI_RPD_LIMIT` in `wrangler.toml`; `apps/api/src/ai/rateLimit.ts`). Google no longer publishes per-model free-tier numbers (reports range down to 20/day). Check AI Studio for this project. Gemini's own 429 is handled anyway: a cooldown from `retryDelay`, or until midnight Pacific for a daily quota.
+- **Token cost per request:** the 110 tool declarations plus the system prompt are about 15.4k input tokens. If the TPM limit bites, offer only the tools a built-in prompt needs, or group the write tools.
+- **Worker CPU:** zod → Gemini schema conversion for 110 tools runs once per isolate. On the 10 ms free plan the first request may exceed it; precompute the declarations at build time if that shows up in production.
+- **Conversation history:** each turn sends earlier turns as text only (questions and answers), not their tool calls and results. That keeps requests small; follow-ups re-read the data they need.
+- **Free-form objects** (records, `unknown` params such as `transactions.drillDown`'s `params`) are declared to Gemini as JSON strings and decoded before zod validation (Gemini rejects an OBJECT with no properties).
+- **Excluded from AI tools:** `example.setTransactionNote` (duplicates `transactions.setNote`) and `goals.markMilestonesSeen` (celebration bookkeeping), plus the non-registry UI operations (bank link, finalize, duplicate, reconnect, remove, refresh; sign-in, revoke, Touch ID). The list is `AI_EXCLUDED` in `apps/api/src/ai/tools.ts`, and the parity test is `apps/api/test/node/ai-tools.test.ts`.
+- **Approve** calls `POST /a/:name?source=ai` (logged with source `ai`). The action log uses the existing authenticated `GET /actions`; no separate `/actions/log` route was added.
+- **Proposal previews** are computed when the assistant proposes them. If the data changes before Approve, the applied change is computed fresh and may differ slightly from the card. Re-preview on Approve if that matters.
+- **Citations:** the model tags numbers `[F12]` (figure → drill-down) or `[C3]` (chart → opens that window). Numbers it writes without a tag (e.g. month-by-month trend amounts) have no link. The live check saw a few.
+- **"Explain this"** is on the Spending window's monthly summary only (`windows/spending/Summary.tsx`). Other places to add `explainWithAssistant({ query, params, figureId, label })` from `windows/assistant/explain.ts`:
+  - Spending: category bars, Sankey flows, Worth a look items
+  - Budgets: the overall and part bars
+  - Goals: a goal card's projected date (`goals.list`)
+  - Recurring: the upcoming low point
+  - Trajectory: net worth points and projection
+  - Investments: performance
+  - Overview: the net worth figure
+- **Seed:** every goal in the dev seed is already 100% funded, so the "finish N weeks sooner" path (`goals.whatIf`) couldn't show a date shift in the live check. An unfinished goal in the seed would exercise it.

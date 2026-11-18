@@ -44,3 +44,14 @@ Steps only you can do: real Touch ID, browser sign-in, real banks, production. E
 - [ ] Trajectory: earning vs spending numbers match what you'd expect for a couple of months; clicking one opens its transactions (once the Transactions window is merged).
 - [ ] Investments: holdings and values match your brokerage; performance's "put in" matches your own record of transfers since connecting.
 - [ ] Investments: add a note to a dividend and see it after a sync (the sync must not wipe it).
+
+## AI assistant
+- [ ] Open AI Assistant: it says it only runs when you ask; nothing is sent until you click a chip or type (the "What was sent" drawer says "Nothing yet").
+- [ ] Run each built-in question once on your real data and judge the answers: real numbers, merchants named, sensible suggestions. Click two or three ↗ links and check the Transactions total equals the number in the answer.
+- [ ] "Where is money going to waste…": with an unfinished goal, the answer says how much sooner the goal would finish and proposes lowering a budget part plus raising the goal's contribution; it says you move the actual money at your bank.
+- [ ] Approve one proposal and reject another from the same answer; check only the approved one changed, it's in Action log as "Assistant", and Undo puts it back.
+- [ ] Open "What was sent" and skim it: no account numbers, no full bank account names, no email, nothing you wouldn't want Google to see (Gemini's free tier may use prompts to improve its products).
+- [ ] Spending → monthly summary → Explain opens the assistant and explains this month's spending.
+- [ ] Close the assistant window and reopen it: the conversation is gone.
+- [ ] Hit the limit (or set `AI_RPM_LIMIT = "1"` locally and ask twice quickly): a friendly message says when it can be used again; the rest of the app keeps working.
+- [ ] Check this project's real Gemini free-tier limits in AI Studio and set `AI_RPM_LIMIT` / `AI_RPD_LIMIT` to match; confirm the chosen model (`GEMINI_MODEL`) is still available.
