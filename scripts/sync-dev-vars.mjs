@@ -34,6 +34,8 @@ const devVars = {
   TOKEN_ENC_KEY: env.TOKEN_ENC_KEY,
   BACKUP_ENC_KEY: env.BACKUP_ENC_KEY,
   APP_TOKEN_PEPPER: env.APP_TOKEN_PEPPER,
+  // Honoured by the Worker only when ENVIRONMENT is "dev" (src/auth.ts).
+  DEV_APP_TOKEN: env.DEV_APP_TOKEN ?? "",
 };
 
 for (const [k, v] of Object.entries(devVars)) {

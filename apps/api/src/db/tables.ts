@@ -43,5 +43,5 @@ export const TABLES = {
  * registry actions.
  */
 export const SECRET_COLUMNS: Partial<Record<DataKey, readonly string[]>> = {
-  items: ["accessTokenEnc", "transactionsCursor"],
+  items: ["accessTokenEnc", "transactionsCursor", "transactionsUpdateStatus", "refreshAvailableAt"],
 };
