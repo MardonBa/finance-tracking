@@ -21,6 +21,7 @@ import { drizzle } from "drizzle-orm/d1";
 import { z } from "zod";
 import { accounts, linkSessions, plaidItems } from "../db/schema.ts";
 import { encryptString, decryptString } from "../crypto/aes.ts";
+import { isSeedToken } from "../sync/accounts.ts";
 import { deps, newId, nowIso, plaidFor } from "../deps.ts";
 import { ALLOWED_PRODUCTS, trimAccount, trimItem, type TrimmedAccount } from "../plaid/index.ts";
 import type { AppEnv } from "../env.ts";
@@ -90,6 +91,9 @@ export async function createLinkSession(env: AppEnv, opts: { itemId?: string }) 
     const item = await db.select().from(plaidItems).where(eq(plaidItems.id, opts.itemId)).get();
     if (!item) throw new LinkError("ITEM_NOT_FOUND", "Unknown connection", 404);
     accessToken = await decryptString(item.accessTokenEnc, env.TOKEN_ENC_KEY);
+    if (isSeedToken(accessToken)) {
+      throw new LinkError("SEED_CONNECTION", "This is a demo bank from the dev seed, so it can't be reconnected. Connect a Sandbox bank to try reconnecting.");
+    }
   } else {
     const trial = await trialStatus(env);
     if (trial.status === "reached") throw new LinkError("TRIAL_LIMIT_REACHED", `Plaid's Trial allows ${TRIAL_ITEM_LIMIT} bank connections`, 409);

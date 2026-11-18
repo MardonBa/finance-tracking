@@ -16,6 +16,13 @@ import type { AppEnv } from "../env.ts";
 export type ItemRow = typeof plaidItems.$inferSelect;
 type PlaidAccount = z.infer<typeof accountSchema>;
 
+/**
+ * The local dev seed's demo bank is not a real Plaid item: its "token" starts with
+ * this prefix (seed/build-seed-sql.ts). Nothing may send it to Plaid.
+ */
+export const SEED_TOKEN_PREFIX = "seed-";
+export const isSeedToken = (token: string) => token.startsWith(SEED_TOKEN_PREFIX);
+
 export async function accessTokenFor(env: AppEnv, item: Pick<ItemRow, "accessTokenEnc">): Promise<string> {
   return decryptString(item.accessTokenEnc, env.TOKEN_ENC_KEY);
 }

@@ -9,7 +9,7 @@ import { deps, newId, nowIso, plaidFor } from "../deps.ts";
 import { PlaidApiError, trimItem, type PlaidClient } from "../plaid/index.ts";
 import type { AppEnv } from "../env.ts";
 import { todayFor } from "../routes/registry.ts";
-import { accessTokenFor, loadItem, type ItemRow } from "./accounts.ts";
+import { accessTokenFor, isSeedToken, loadItem, type ItemRow } from "./accounts.ts";
 import { syncHooks } from "./hooks.ts";
 import { syncInvestments, syncLiabilities, syncLiveBalances, syncRecurring } from "./products.ts";
 import { consentExpiringSoon, isTransient, messageFor, statusForError } from "./status.ts";
@@ -113,6 +113,11 @@ export async function syncItem(
     if (!item) throw new Error(`No item ${itemId}`);
     const plaid = plaidFor(env);
     const accessToken = await accessTokenFor(env, item);
+    if (isSeedToken(accessToken)) {
+      // Dev seed bank: its data is already seeded and there is nothing at Plaid to ask.
+      await finishRun(env, runId, "ok", counts, null);
+      return { itemId, status: "up_to_date", ...counts };
+    }
     const today = todayFor(env, deps.now());
     const now = nowIso();
     const { products } = await refreshItemStatus(env, plaid, item, accessToken);

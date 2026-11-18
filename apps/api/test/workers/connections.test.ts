@@ -74,6 +74,15 @@ describe("Hosted Link sessions (§3)", () => {
     expect(sent).not.toHaveProperty("optional_products");
   });
 
+  it("refuses to reconnect the dev seed's demo bank with a clear message, without calling Plaid", async () => {
+    const fake = plaid.addItem({ accounts: bankAccounts() });
+    const itemId = await insertItem({ ...fake, accessToken: "seed-not-a-plaid-token" });
+    const { status, body } = await post("/connections/link", { itemId });
+    expect(status).toBe(400);
+    expect(body.error).toBe("SEED_CONNECTION");
+    expect(plaid.callsTo("/link/token/create")).toHaveLength(0);
+  });
+
   it("reports the Trial limit and refuses a new bank once 10 are connected", async () => {
     expect((await (await request("/connections/limit")).json()) as object).toEqual({ count: 0, limit: 10, remaining: 10, status: "ok" });
     for (let i = 0; i < 8; i++) await insertItem(plaid.addItem({ accounts: [] }));

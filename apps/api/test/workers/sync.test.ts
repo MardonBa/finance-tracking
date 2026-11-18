@@ -52,6 +52,14 @@ describe("/transactions/sync (§4)", () => {
     expect(plaid.callsTo("/transactions/sync")[0]!.body.options).toEqual({ include_original_description: true, days_requested: 730 });
   });
 
+  it("skips the dev seed's demo bank: up to date, nothing sent to Plaid", async () => {
+    const fake = plaid.addItem({ accounts: bankAccounts() });
+    const itemId = await insertItem({ ...fake, accessToken: "seed-not-a-plaid-token" });
+    const out = await syncItem(env, itemId, { trigger: "manual", liveBalances: true });
+    expect(out.status).toBe("up_to_date");
+    for (const path of ["/item/get", "/accounts/balance/get", "/transactions/sync"]) expect(plaid.callsTo(path)).toHaveLength(0);
+  });
+
   it("is safe to repeat: a second sync and a replayed page create no duplicates", async () => {
     const { itemId, fake } = await connected({ pages: [{ added: [tx("t1", 10), tx("t2", 20)] }] });
     await syncItem(env, itemId, { trigger: "cron" });
