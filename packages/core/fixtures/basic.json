@@ -78,6 +78,8 @@
     ],
     "balanceSnapshots": [
       { "accountId": "acc_checking", "date": "2026-10-31", "balanceCents": 352310, "source": "plaid", "isEstimated": false, "isCarriedForward": false }
-    ]
+    ],
+    "trajectoryAssumptions": [],
+    "lifePhases": []
   }
 }

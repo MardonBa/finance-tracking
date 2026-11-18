@@ -35,6 +35,8 @@ export const TABLES = {
   holdings: s.holdings,
   investmentTransactions: s.investmentTransactions,
   balanceSnapshots: s.balanceSnapshots,
+  trajectoryAssumptions: s.trajectoryAssumptions,
+  lifePhases: s.lifePhases,
 } as const satisfies Record<DataKey, unknown>;
 
 /**

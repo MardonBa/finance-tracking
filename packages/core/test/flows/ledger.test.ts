@@ -8,7 +8,9 @@ import { buildLedger, countable, spendCents, type Ledger } from "../../src/flows
 import { normalizeMerchantKey } from "../../src/flows/merchants.ts";
 import { effectiveDate } from "../../src/flows/dates.ts";
 import { inPeriod } from "../../src/flows/figures.ts";
-import { spendingByCategory } from "../../src/spending/breakdowns.ts";
+import { savedByDestination, spendingByCategory } from "../../src/spending/breakdowns.ts";
+import { actionRegistry } from "../../src/actions/index.ts";
+import { applyMutations } from "../../src/registry.ts";
 import { monthTotals } from "../../src/spending/summary.ts";
 import { isoDateInTimeZone, monthOf } from "../../src/dates.ts";
 import { BUCKETS } from "../../src/types.ts";
@@ -101,6 +103,27 @@ describe("moving my own money is never spending or income (§6)", () => {
   it("an ATM withdrawal into the cash account is a transfer", () => {
     expect(bucketOf(l, "atm_out")).toBe("transfer");
     expect(bucketOf(l, "cash_in")).toBe("transfer");
+  });
+
+  it("a manual account's opening balance (accounts.addManualAccount) is a transfer: never income, spending, matched or saved", () => {
+    const add = actionRegistry.get("accounts.addManualAccount")!;
+    const c = { today: "2026-10-20", now: "2026-10-20T12:00:00.000Z", newId: () => "wallet" };
+    // An equal outflow on another account the same day must not pair with it.
+    const base = mini([txn("out", "chk", -40000, "2026-10-20", { detailed: "TRANSFER_OUT_SAVINGS" })]);
+    const input = add.input.parse({ name: "Wallet", kind: "savings", startingBalanceCents: 40000 });
+    const after = applyMutations(base, add.apply(base as never, input, c));
+    const opening = after.transactions.find((t) => t.id.endsWith("__opening"))!;
+    expect(opening.id).toBe("wallet__opening");
+    const l2 = buildLedger(after);
+    expect(bucketOf(l2, opening.id)).toBe("transfer");
+    expect(reasonOf(l2, opening.id)).toBe("opening_balance");
+    expect(l2.transferLinks).toHaveLength(0);
+    // Even a stray override can't make it income.
+    const forced = buildLedger({ ...after, overrides: after.overrides.map((o) => ({ ...o, bucket: "income" as const })) });
+    expect(bucketOf(forced, opening.id)).toBe("transfer");
+    const t = monthTotals(l2, "2026-10");
+    expect([t.incomeCents, t.spendingCents]).toEqual([0, 0]);
+    expect(savedByDestination(l2, ["2026-10"]).value.find((s) => s.accountId === "wallet")!.totalCents).toBe(0);
   });
 
   it("cash transactions follow the same rules (an unlabelled cash purchase is spending)", () => {

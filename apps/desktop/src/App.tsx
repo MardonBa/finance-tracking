@@ -1,37 +1,31 @@
 import "./ui/tokens.css";
 import "./App.css";
-import { useEffect, useState } from "react";
-import { API_URL } from "./api/client";
+import { lazy, Suspense, useEffect, useState } from "react";
+import { AuthGate } from "./auth/AuthGate.tsx";
 
-type Health = { status: "checking" } | { status: "up"; env: string } | { status: "down" };
+/** Dev-only styleguide at #styleguide; tree-shaken out of production builds. */
+const Styleguide = import.meta.env.DEV ? lazy(() => import("./ui/Styleguide.tsx")) : null;
 
-/** Placeholder until the shell track lands: shows whether the local backend is reachable. */
-function App() {
-  const [health, setHealth] = useState<Health>({ status: "checking" });
-
+function useHash() {
+  const [hash, setHash] = useState(() => window.location.hash);
   useEffect(() => {
-    let cancelled = false;
-    fetch(`${API_URL}/health`)
-      .then((r) => r.json() as Promise<{ env: string }>)
-      .then((body) => !cancelled && setHealth({ status: "up", env: body.env }))
-      .catch(() => !cancelled && setHealth({ status: "down" }));
-    return () => {
-      cancelled = true;
-    };
+    const on = () => setHash(window.location.hash);
+    window.addEventListener("hashchange", on);
+    return () => window.removeEventListener("hashchange", on);
   }, []);
+  return hash;
+}
 
-  return (
-    <div className="app">
-      <section className="card">
-        <h1>Finance Tracker</h1>
-        <p className="muted">
-          {health.status === "checking" && "Checking the backend…"}
-          {health.status === "up" && `Backend is up (${health.env}) at ${API_URL}`}
-          {health.status === "down" && `Backend not reachable at ${API_URL}. Run npm run dev from the repo root.`}
-        </p>
-      </section>
-    </div>
-  );
+function App() {
+  const hash = useHash();
+  if (Styleguide && hash === "#styleguide") {
+    return (
+      <Suspense fallback={null}>
+        <Styleguide />
+      </Suspense>
+    );
+  }
+  return <AuthGate />;
 }
 
 export default App;

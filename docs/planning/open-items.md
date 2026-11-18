@@ -16,6 +16,31 @@ Defaults and placeholders chosen while building autonomously. Each has a matchin
 - **Dev auth:** the desktop app uses `DEV_APP_TOKEN` (dev builds only) until Google sign-in issues real app tokens.
 - **Undo conflicts:** undoing an older action restores rows as they were before it, even if a later action changed the same rows. There is no conflict detection yet (`apps/api/src/routes/registry.ts`).
 
+## Phase 1: core-balances
+
+- **Daily detail window:** snapshots older than 90 days are reduced to one per week (`DAILY_DETAIL_DAYS`, `packages/core/src/balances/snapshots.ts`); §5 Open.
+- **Hidden accounts:** left out of the net worth chart and today's net worth unless `includeHidden` is set (`balances/chart.ts`).
+- **No-income horizon:** the upcoming view looks 30 days ahead when no income is expected (`NO_INCOME_HORIZON_DAYS`, `recurring/projection.ts`); §9 Open.
+- **Upcoming view details:** charges dated today count as not yet posted; only checking, savings and cash accounts get a projection; on the income day, that day's charges fall into the next window (`recurring/projection.ts`).
+- **Variable bills:** estimated as the average of the last 3 amounts; a bill is "variable" when its recent amounts vary by more than 5%; charges first seen within 30 days are listed as new (`recurring/merge.ts`).
+- **Goal rates:** "recent contribution rate" uses the last 3 months; expected-contribution status shows the current period plus 3 recent ones (`goals/progress.ts`). Projected completion uses the account's recent monthly growth, filled in priority order.
+- **Projection defaults:** 7% return, 4% HYSA, 0% cash, 3% inflation, range ±2 percentage points of return applied to investments only (`DEFAULT_ASSUMPTIONS`, `trajectory/assumptions.ts`); §12 Open asks for the range width.
+- **Investment performance start:** the account's value on its first holdings day (on or after the connection day) counts as money put in, because earlier transfers aren't known (`investments/investments.ts`).
+- **Manual account starting balance:** stored as a transaction `<accountId>__opening` with a confirmed `transfer` override so it is neither spending nor income; core-flows may want to recognise it explicitly (`actions/accounts/accountActions.ts`).
+- **Migration numbering:** the trajectory tables are in `apps/api/migrations/0050_trajectory_assumptions.sql`, with journal entry `0050_trajectory_assumptions` and `meta/0050_snapshot.json`. Reconcile the drizzle journal with the backend track's migrations at merge.
+## Phase 1: shell
+
+- **Orange and pink shades (follow-up to the Phase 0 item):** settled for now in `apps/desktop/src/ui/tokens.css` and checked by `src/ui/contrast.test.ts`. Text shades `--orange-700 #9a4416` / `--pink-700 #a03158` pass 4.5:1 on every cream; chart shades `--orange-600 #c2601f` / `--pink-600 #c74a78` pass 3:1. The 500/300/100 shades are fills only. Confirm the look in the styleguide (`#styleguide` in a dev build).
+- **Keychain access control:** the credential item has no user-presence ACL (that needs a signed app with a keychain-access-groups entitlement). Reads are gated in Rust: `get_credential` refuses unless Touch ID unlocked the session (`src-tauri/src/native.rs`).
+- **Google client secret in the binary:** baked in at build time from `.env` for the Desktop OAuth client, which Google treats as non-confidential; PKCE protects the code (`src-tauri/src/oauth.rs`).
+- **Sign-in timeout:** the loopback listener waits 5 minutes for the browser (`src-tauri/src/oauth.rs`).
+- **Relock granularity:** the 72h check runs every 30 s, so the relock can fire up to 30 s late (`src-tauri/src/relock.rs`).
+- **Deep links under `tauri dev`:** macOS only registers `financetracker://` for a bundled app; test deep links with `tauri build` (`src-tauri/src/lib.rs`).
+- **Window sizes after the app window shrinks:** windows shrink to fit and stay that size when the app window grows again (`src/shell/wm/state.ts`).
+- **Category colours:** 6 named colours, categories under 2% of the total share "Other" (`src/ui/colorMap.ts`).
+- **Dev auth bypass:** `VITE_DEV_AUTH_BYPASS=1` must be passed on the command line; `sync-dev-vars` doesn't write it (`src/api/client.ts`).
+- **"Add a bank" before Phase 2:** shows a placeholder dialog until the onboarding track registers the `add-banks` step (`src/auth/AuthGate.tsx`).
+
 ## Phase 1: core-flows
 
 - **Transfer window:** automatic matching pairs equal amounts within 5 calendar days (`MATCH_WINDOW_DAYS`, `packages/core/src/flows/transfers.ts`). Amount-only matches need one half labelled as a transfer by Plaid (or uncategorised, e.g. cash) and are flagged for review in Needs a look.
@@ -30,3 +55,4 @@ Defaults and placeholders chosen while building autonomously. Each has a matchin
 - **Budget part priority:** trip → tag part → merchant part → category part → Everything else. The criteria fix only tag > category; merchant > category is a choice (`budgets/budget.ts`).
 - **Budget history rows:** part versions are grouped by name, so renaming a part starts a new history row; "Everything else" is a remainder row, not a part with its own plan (`budgets/budget.ts`).
 - **Plan edits:** changing an amount or a part applies from the start of the current period; finished periods keep their plan.
+- **Opening balances:** transactions whose id ends in `__opening` (from `accounts.addManualAccount`) are always transfers, never auto-matched and never "saved", even if an override says otherwise (`flows/ledger.ts`). This replaces relying on the confirmed transfer override alone.

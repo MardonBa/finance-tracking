@@ -204,7 +204,8 @@ export interface SavedDestination {
 export function savedByDestination(ledger: Ledger, months: readonly IsoMonth[]): { value: SavedDestination[]; figures: Record<string, Figure> } {
   const figures: Record<string, Figure> = {};
   const value: SavedDestination[] = [];
-  const isMove = (e: LedgerEntry) => e.bucket === "transfer" && e.bucketReason !== "investment_account";
+  const isMove = (e: LedgerEntry) =>
+    e.bucket === "transfer" && e.bucketReason !== "investment_account" && e.bucketReason !== "opening_balance";
   for (const acc of [...ledger.accounts.values()].sort((a, b) => (a.id < b.id ? -1 : 1))) {
     const kind = accountKind(acc);
     if (kind !== "savings" && kind !== "investment") continue;

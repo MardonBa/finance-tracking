@@ -55,6 +55,7 @@ import { merchantResolver, type ResolvedMerchant } from "./merchants.ts";
 import { effectiveTransferLinks } from "./transfers.ts";
 
 export type BucketReason =
+  | "opening_balance"
   | "override"
   | "transfer_link"
   | "rule"
@@ -149,6 +150,15 @@ export interface Ledger {
   splitMismatches: TransactionId[];
   /** Display name per merchant key (most frequent name, then alphabetical). */
   merchantNames: Map<string, string>;
+}
+
+/**
+ * A manual account's starting balance: the transaction `<accountId>__opening`
+ * written by the `accounts.*` actions (core-balances). Always a transfer.
+ */
+export const OPENING_BALANCE_SUFFIX = "__opening";
+export function isOpeningBalance(t: Pick<Transaction, "id">): boolean {
+  return t.id.endsWith(OPENING_BALANCE_SUFFIX);
 }
 
 /** Does this entry count toward totals? (cleared only, decision 005) */
@@ -272,6 +282,8 @@ export function buildLedger(data: LedgerData): Ledger {
     reason: BucketReason;
   }
   const baseOf = (t: Transaction): Base => {
+    // A manual account's starting balance is never spending or income, whatever else says so.
+    if (isOpeningBalance(t)) return { bucket: "transfer", reason: "opening_balance" };
     const o = overrides.get(t.id);
     if (o?.bucket) return { bucket: o.bucket, reason: "override" };
     if (linkOf.has(t.id)) return { bucket: "transfer", reason: "transfer_link" };

@@ -46,7 +46,8 @@ function isCandidate(
   overrides: Map<string, TransactionOverride>,
   ruleBucket: TransferMatchInput["ruleBucket"],
 ): boolean {
-  if (t.removed || t.pending || t.amountCents === 0) return false;
+  // A manual account's starting balance never pairs with anything.
+  if (t.removed || t.pending || t.amountCents === 0 || t.id.endsWith("__opening")) return false;
   const o = overrides.get(t.id);
   // The user said what this is; only an explicit "transfer" stays matchable.
   if (o?.bucket) return o.bucket === "transfer";
