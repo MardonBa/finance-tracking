@@ -141,10 +141,14 @@
   background: repeating-linear-gradient(45deg, var(--surface-cream) 0 8px, var(--surface-cream-light) 8px 16px);
 }
 .gl-picture__add {
+  /* Centred without `transform`: .ui-raised owns transform for the hover/press lift,
+     so a translateX(-50%) here would be replaced on hover and the button would jump. */
   position: absolute;
-  left: 50%;
+  left: 0;
+  right: 0;
   bottom: var(--space-2);
-  transform: translateX(-50%);
+  width: fit-content;
+  margin-inline: auto;
   --raise-offset: 2px;
   --raise-offset-hover: 3px;
   padding: 2px var(--space-2);
