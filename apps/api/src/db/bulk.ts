@@ -10,6 +10,10 @@
  * Rows use the Drizzle property names (camelCase); columns come from the
  * Drizzle table, so this stays in step with schema.ts. Booleans become 0/1
  * (json_extract of JSON true is 1).
+ *
+ * TODO(revisit): not yet measured against the Workers Free plan's CPU (10 ms)
+ * and per-invocation query limits on a real 24-month first import; the sync
+ * commits per page and resumes from the saved cursor, so a cut-off run loses nothing.
  */
 import { getTableColumns, getTableName } from "drizzle-orm";
 import type { SQLiteTable } from "drizzle-orm/sqlite-core";

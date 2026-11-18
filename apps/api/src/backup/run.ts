@@ -7,6 +7,9 @@
 import type { AppEnv } from "../env.ts";
 import { BACKUP_TABLES, backupKey, backupSummary, encodeBackup, type BackupData, type SqlValue } from "./format.ts";
 
+/** The weekly backup cron (wrangler.toml); every other cron is the daily sync. */
+export const BACKUP_CRON = "0 12 * * SUN";
+
 /** TODO(revisit): keep the last 12 weekly backups (~3 months); success-criteria §2 Open. */
 export const BACKUP_RETENTION = 12;
 

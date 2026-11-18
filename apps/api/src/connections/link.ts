@@ -321,7 +321,34 @@ export async function finalizeSession(env: AppEnv, sessionId: string): Promise<{
       return { result: await describe(env, await loadSession(env, sessionId)), newItemId: null };
     }
     // TODO(revisit): one bank per Link session; extra item_add_results (multi-item Link) are ignored.
+    return await completeNewItem(env, sessionId, publicToken);
+  } catch (e) {
+    // Nothing was saved: item and accounts are written only by saveItem's single batch.
+    await setSession(env, sessionId, { status: "failed", errorCode: errorCodeOf(e), finishedAt: nowIso() }).catch(() => {});
+    return { result: { status: "failed", sessionId, errorCode: errorCodeOf(e) }, newItemId: null };
+  }
+}
 
+/**
+ * Dev only (Sandbox, no browser): finish a claimed-or-pending NEW session with
+ * a public token from /sandbox/public_token/create, through exactly the same
+ * code as a real Hosted Link result. Used by the end-to-end run.
+ */
+export async function finalizeWithPublicToken(env: AppEnv, sessionId: string, publicToken: string) {
+  const claimed = await env.DB.prepare("UPDATE link_sessions SET status = 'finalizing' WHERE id = ?1 AND status = 'pending' AND mode = 'new'").bind(sessionId).run();
+  if ((claimed.meta.changes ?? 0) !== 1) throw new LinkError("SESSION_NOT_PENDING", "Session is not a pending new-bank session", 409);
+  try {
+    return await completeNewItem(env, sessionId, publicToken);
+  } catch (e) {
+    await setSession(env, sessionId, { status: "failed", errorCode: errorCodeOf(e), finishedAt: nowIso() }).catch(() => {});
+    return { result: { status: "failed", sessionId, errorCode: errorCodeOf(e) } as FinalizeResult, newItemId: null };
+  }
+}
+
+/** Exchange → encrypt → item + accounts (trimmed) → duplicate check → save in one batch. Session must be claimed. */
+async function completeNewItem(env: AppEnv, sessionId: string, publicToken: string): Promise<{ result: FinalizeResult; newItemId: string | null }> {
+  const plaid = plaidFor(env);
+  {
     const exchanged = await plaid.call("/item/public_token/exchange", { public_token: publicToken });
     const accessTokenEnc = await encryptString(exchanged.access_token, env.TOKEN_ENC_KEY);
     const itemInfo = trimItem(await plaid.call("/item/get", { access_token: exchanged.access_token }));
@@ -345,13 +372,9 @@ export async function finalizeSession(env: AppEnv, sessionId: string): Promise<{
       await setSession(env, sessionId, { status: "duplicate", pendingAccessTokenEnc: accessTokenEnc, pendingResultJson: JSON.stringify(pending), finishedAt: nowIso() });
       return { result: await describe(env, await loadSession(env, sessionId)), newItemId: null };
     }
-    s = await loadSession(env, sessionId);
+    const s = await loadSession(env, sessionId);
     const itemId = await saveItem(env, s, accessTokenEnc, { item, accounts: accts }, new Set());
     return { result: await describe(env, await loadSession(env, sessionId)), newItemId: itemId };
-  } catch (e) {
-    // Nothing was saved: item and accounts are written only by saveItem's single batch.
-    await setSession(env, sessionId, { status: "failed", errorCode: errorCodeOf(e), finishedAt: nowIso() }).catch(() => {});
-    return { result: { status: "failed", sessionId, errorCode: errorCodeOf(e) }, newItemId: null };
   }
 }
 
@@ -365,6 +388,7 @@ export async function resolveDuplicate(env: AppEnv, sessionId: string, choice: "
     return { result: await describe(env, await loadSession(env, sessionId)), newItemId: null };
   }
   const p = pendingResultSchema.parse(JSON.parse(s.pendingResultJson));
+  // TODO(revisit): "keep" saves matching accounts hidden (so never counted twice); the UI may want a per-account choice.
   const matchedKeys = new Set(p.duplicates.flatMap((d) => d.matchingAccounts.map((m) => `${m.newAccountName}|${m.mask}`)));
   const hide = new Set(p.accounts.filter((a) => matchedKeys.has(`${a.name}|${a.mask}`)).map((a) => a.plaidAccountId ?? ""));
   const itemId = await saveItem(env, s, s.pendingAccessTokenEnc, p, hide);

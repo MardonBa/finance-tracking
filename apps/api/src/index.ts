@@ -15,9 +15,11 @@ import { authRoutes, requireAppToken } from "./auth.ts";
 import { NotFound, registryRoutes, todayFor } from "./routes/registry.ts";
 import { plaidRoutes } from "./routes/plaid.ts";
 import { connectionRoutes } from "./routes/connections.ts";
+import { devRoutes } from "./routes/dev.ts";
 import { syncAllItems } from "./sync/run.ts";
 import { saveDailySnapshots } from "./sync/snapshots.ts";
-import { runBackup } from "./backup/run.ts";
+// Note: the Worker entry may only export handlers (workerd rejects other values), so constants live elsewhere.
+import { BACKUP_CRON, runBackup } from "./backup/run.ts";
 
 export const app = new Hono<HonoEnv>();
 
@@ -43,6 +45,7 @@ app.route("/", plaidRoutes);
 app.route("/", authRoutes);
 app.route("/", registryRoutes);
 app.route("/", connectionRoutes);
+app.route("/", devRoutes); // 404 unless ENVIRONMENT=dev and PLAID_ENV=sandbox
 
 app.notFound((c) => c.json({ error: "Not found" }, 404));
 
@@ -54,9 +57,6 @@ app.onError((err, c) => {
   console.error(err);
   return c.json({ error: "Internal error" }, 500);
 });
-
-/** The weekly backup cron (wrangler.toml); every other cron is the daily sync. */
-export const BACKUP_CRON = "0 12 * * SUN";
 
 /**
  * Daily job: sync every bank (one failing never stops the others), then save

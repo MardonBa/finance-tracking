@@ -215,6 +215,26 @@ describe("finalising a connection (§3)", () => {
   });
 });
 
+describe("dev-only Sandbox helpers", () => {
+  it("connects a Sandbox bank through the same finalize code in dev", async () => {
+    const fake = plaid.addItem({ accounts: bankAccounts() });
+    // The fake answers /sandbox/public_token/create with a token for `fake`.
+    (plaid as unknown as { handlers: Record<string, () => object> }).handlers["/sandbox/public_token/create"] = () => ({ public_token: plaid.publicTokenFor(fake) });
+    const { status, body } = await post("/dev/sandbox/connect", {});
+    expect(status).toBe(200);
+    expect(body.result.status).toBe("done");
+    expect(await count("accounts")).toBe(2);
+  });
+
+  it("does not exist in production, even with a valid credential", async () => {
+    for (const path of ["/dev/sandbox/connect", "/dev/sandbox/fire-webhook", "/dev/sandbox/reset-login"]) {
+      const res = await request(path, { method: "POST", body: "{}", envOverrides: { ENVIRONMENT: "production" } });
+      expect(res.status, path).toBe(404);
+    }
+    expect(plaid.calls).toHaveLength(0);
+  });
+});
+
 describe("Hosted Link redirect page (§3)", () => {
   it("hands off to financetracker:// with our session id and needs no credential", async () => {
     const id = "ls_0123456789abcdef0123456789abcdef";
