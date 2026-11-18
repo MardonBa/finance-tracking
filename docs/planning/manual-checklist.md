@@ -63,16 +63,24 @@ Steps only you can do: real Touch ID, browser sign-in, real banks, production. E
 Production D1 `ft-prod` and R2 `ft-backups-prod` were created on 2026-11-18 and are in `apps/api/wrangler.toml`. The production migration was left for you (the tool permission check blocked it overnight).
 - [ ] Apply migrations: `cd apps/api && npx wrangler d1 migrations apply DB --remote --env production`.
 - [ ] Set production secrets with `npx wrangler secret put <NAME> --env production` (see `docs/shipping.md`): `PLAID_CLIENT_ID`, production `PLAID_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GEMINI_API_KEY`, `ALLOWED_GOOGLE_EMAIL`, and fresh `TOKEN_ENC_KEY`, `BACKUP_ENC_KEY`, `APP_TOKEN_PEPPER`. Keep a copy of `BACKUP_ENC_KEY` somewhere safe outside Cloudflare, or backups can't be restored.
-- [ ] Deploy: `cd apps/api && npx wrangler deploy --env production`, then check `https://ft-api.ft-api.workers.dev/health`.
-- [ ] Build the app against production: `cd apps/desktop && VITE_API_URL=https://ft-api.ft-api.workers.dev npm run tauri build`, then copy it to `/Applications`.
-- [ ] Connect a real bank, then save 2–3 anonymised production Plaid responses into `apps/api/test/fixtures/plaid/production/` (see its README) and run `npm test`.
+- [ ] Deploy: `npm run ship:api:prod` (tests, migrations, deploy), then check `https://ft-api.ft-api.workers.dev/health`.
+- [ ] Build the app against production: `VITE_API_URL=https://ft-api.ft-api.workers.dev npm run ship:app` (tests first), then copy it to `/Applications`.
+- [ ] Connect a real bank, then save 2–3 production Plaid responses, anonymise them with `apps/api/scripts/anonymise-plaid.ts` into `apps/api/test/fixtures/plaid/production/<bank>/` (see its README), read them, and run `npm test`.
 ## AI assistant
 - [ ] Open AI Assistant: it says it only runs when you ask; nothing is sent until you click a chip or type (the "What was sent" drawer says "Nothing yet").
 - [ ] Run each built-in question once on your real data and judge the answers: real numbers, merchants named, sensible suggestions. Click two or three ↗ links and check the Transactions total equals the number in the answer.
 - [ ] "Where is money going to waste…": with an unfinished goal, the answer says how much sooner the goal would finish and proposes lowering a budget part plus raising the goal's contribution; it says you move the actual money at your bank.
 - [ ] Approve one proposal and reject another from the same answer; check only the approved one changed, it's in Action log as "Assistant", and Undo puts it back.
 - [ ] Open "What was sent" and skim it: no account numbers, no full bank account names, no email, nothing you wouldn't want Google to see (Gemini's free tier may use prompts to improve its products).
-- [ ] Spending → monthly summary → Explain opens the assistant and explains this month's spending.
+- [ ] Spending → monthly summary → Explain opens the assistant and explains this month's spending. Try Explain on one other window too (Budgets, Goals, Recurring, Trajectory, Investments, or the Overview's spending card).
 - [ ] Close the assistant window and reopen it: the conversation is gone.
 - [ ] Hit the limit (or set `AI_RPM_LIMIT = "1"` locally and ask twice quickly): a friendly message says when it can be used again; the rest of the app keeps working.
 - [ ] Check this project's real Gemini free-tier limits in AI Studio and set `AI_RPM_LIMIT` / `AI_RPD_LIMIT` to match; confirm the chosen model (`GEMINI_MODEL`) is still available.
+## Verification (Phase 4)
+- [ ] `npm run dev`: edit a window's text and an API route; the app updates in place and the local Worker reloads, with no restart.
+- [ ] Glance at each window at its default size: it answers the question in its dock tooltip (hover the dock icon), with one main chart or list and details behind tabs or clicks.
+- [ ] Hover, keyboard focus (Tab), press and disabled states look consistent on buttons, tabs, toggles and dock items (`#styleguide` in a dev build shows them side by side).
+- [ ] Time the Overview after Touch ID on your Mac and connection: data within about a second.
+- [ ] Transactions → Balance check: on real data, any "Unexplained" amount on an account makes sense (or points at a missing transaction); the account's sheet (click it on the Overview) shows the same amount.
+- [ ] Shrink the app window, then make it big again: windows grow back to the size you gave them.
+

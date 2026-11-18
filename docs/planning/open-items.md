@@ -36,7 +36,7 @@ Defaults and placeholders chosen while building autonomously. Each has a matchin
 - **Sign-in timeout:** the loopback listener waits 5 minutes for the browser (`src-tauri/src/oauth.rs`).
 - **Relock granularity:** the 72h check runs every 30 s, so the relock can fire up to 30 s late (`src-tauri/src/relock.rs`).
 - **Deep links under `tauri dev`:** macOS only registers `financetracker://` for a bundled app; test deep links with `tauri build` (`src-tauri/src/lib.rs`).
-- **Window sizes after the app window shrinks:** windows shrink to fit and stay that size when the app window grows again (`src/shell/wm/state.ts`).
+- ~~**Window sizes after the app window shrinks:** windows shrink to fit and stay that size when the app window grows again (`src/shell/wm/state.ts`).~~ **Resolved (Phase 4):** windows remember the rect you chose and grow back toward it (`preferred` in `src/shell/wm/state.ts`).
 - **Category colours:** 6 named colours, categories under 2% of the total share "Other" (`src/ui/colorMap.ts`).
 - **Dev auth bypass:** `VITE_DEV_AUTH_BYPASS=1` must be passed on the command line; `sync-dev-vars` doesn't write it (`src/api/client.ts`).
 - **"Add a bank" before Phase 2:** shows a placeholder dialog until the onboarding track registers the `add-banks` step (`src/auth/AuthGate.tsx`).
@@ -76,7 +76,7 @@ Resolved from Phase 0: the Plaid webhook is now verified and handled, `scheduled
 ## Phase 2: budgets-goals
 
 - **Loss explanations look back two weeks** (`LOSS_LOOKBACK_DAYS` in `windows/goals/GoalsWindow.tsx`). `goals.explainChanges` explains withdrawals between two balances; a goal that lost money because a higher-priority goal was added or reordered is explained only in that action's before → after preview and the reorder toast, not later on the card (that needs a priority history in core).
-- **A new goal celebrates the milestones it already covers.** A goal created on an account with unassigned money plays its milestones right away. Decide whether `goals.create` should mark existing milestones as seen.
+- ~~**A new goal celebrates the milestones it already covers.** A goal created on an account with unassigned money plays its milestones right away. Decide whether `goals.create` should mark existing milestones as seen.~~ **Resolved (Phase 4):** `goals.create` (and a target/account change in `goals.edit`) records already-covered milestones as seen.
 - **Goal colours use the stable `colorSlot`** (`goalColor(slot)` in `windows/goals/goalColors.ts`), not `goalColorMap(ids)`. Core reuses the lowest free slot, so a colour can be reused after a goal is archived. Overview should import `goalColor` too.
 - **Budget part editor uses one target kind per part** (categories, merchants or one tag) though `budgets.createPart` accepts a mix. A tag part only lists existing tags; new tags come from the Transactions window (`transactions.setTags`).
 - **Achievement purchase date** shows the transaction's posted date; the purchase picker shows the ledger date (authorized), so they can differ by a day.
@@ -87,7 +87,7 @@ Resolved from Phase 0: the Plaid webhook is now verified and handled, `scheduled
 Defaults chosen while building the Transactions and Spending windows (each marked `TODO(revisit):` in code).
 
 - **"Usual" and the savings rate aren't clickable.** "Usual" is an average of 1–3 months and the savings rate is a ratio, so neither is a sum of transactions. Income, spending, saved and the previous month's values all drill down (`windows/spending/Summary.tsx`).
-- **Linking a refund** only offers the suggestions from `flows.refundSuggestions` (same merchant, ≤ purchase, 90 days). Picking any purchase by hand isn't offered yet (`windows/transactions/RowFixes.tsx`).
+- ~~**Linking a refund** only offers the suggestions from `flows.refundSuggestions` (same merchant, ≤ purchase, 90 days). Picking any purchase by hand isn't offered yet (`windows/transactions/RowFixes.tsx`).~~ **Resolved (Phase 4):** the refund fix also has a purchase search (`PurchasePicker` in `windows/transactions/RowFixes.tsx`).
 - **Merchant view period:** opens on the last 12 months, with This month / 3 months / 12 months to switch (`windows/transactions/MerchantView.tsx`).
 - **Search paging:** 200 rows, "Show more" up to 1000 (the query's limit) (`windows/transactions/SearchView.tsx`).
 - **Needs a look fixes run in one click** (no separate preview step) and then show the before → after with Undo; row fixes elsewhere preview first, then Apply.
@@ -104,17 +104,17 @@ Defaults chosen while building the Transactions and Spending windows (each marke
 - **Net worth range:** "By month" shows month-end points over the last 24 months, "By year" year-end points over 10 years (`windows/trajectory/NetWorthTab.tsx`). Daily detail isn't shown; the hover still has every account and the total.
 - **Projection defaults:** opens on 30 years in today's dollars. Usual income/spending come from `spending.monthlySummary` (average of the last 3 full months); when there's no history yet the projection uses $0 and says so in the field hints.
 - **Assumption edits are a local what-if** (sent to `trajectory.projection` as `assumptions` / `phases`, debounced 250 ms) and stored only on "Save" (previewed). Unsaved edits are lost when the window closes.
-- **Card "paid from" when no statement is due:** no query returns a card's `payingAccountId` unless a statement is due, so the picker shows "Not set" then; the action preview shows the real current value. A small `recurring.cards` query would fix it.
+- ~~**Card "paid from" when no statement is due:** no query returns a card's `payingAccountId` unless a statement is due, so the picker shows "Not set" then; the action preview shows the real current value. A small `recurring.cards` query would fix it.~~ **Resolved (Phase 4):** new `recurring.cards` query; the picker uses it.
 - **Earning vs spending by year** drills down through `flows.income` / `spending.byCategory` totals for the calendar year (no year figures in `spending.cashFlow`); year view covers the last 36 months.
 - **Overview hook:** `windows/recurring/warnings.tsx` exports `useLowBalanceWarnings()` and `<LowBalanceWarnings onOpen />` (renders nothing when every account is covered).
-- **Shared bits:** `windows/shared/` (format helpers, `ReviewAndConfirm`: a Review button that opens the shared `ui/ActionConfirm` card, layout CSS) and `src/test/` (in-process core backend for window tests, chart stub). `src/test/coreBackend.tsx` overlaps main's `windows/testing/`; merge the two later.
+- ~~**Shared bits:** `windows/shared/` (format helpers, `ReviewAndConfirm`: a Review button that opens the shared `ui/ActionConfirm` card, layout CSS) and `src/test/` (in-process core backend for window tests, chart stub). `src/test/coreBackend.tsx` overlaps main's `windows/testing/`; merge the two later.~~ **Resolved (Phase 4):** one test backend in `src/test/coreBackend.tsx` plus `src/test/render.tsx`; `windows/testing/` and `windows/goals/testing/` are gone.
 
 ## Phase 2: onboarding-overview
 
 - **Prompt after unlock also covers plain errors:** the reconnect prompt and the "out of date" markers include connections with `status: "error"` as well as `needsReconnect` (login required, expiring, revoked), so a bank that is merely down (`INSTITUTION_DOWN`) also prompts. The API could expose `isTransient` per connection to skip those (`apps/desktop/src/connections/api.ts`, `needsAttention`).
 - **"Out of date" threshold:** an account is out of date when its bank needs attention or hasn't updated for 48 hours (`STALE_AFTER_MS`, `connections/useConnections.ts`).
 - **Several broken banks** collapse into one alert ("2 banks need attention" → Fix reopens the prompt listing each).
-- **Needs a look / unexplained alerts:** they open the Transactions window with `openItem({ area: "transactions", itemId: "needs-a-look" | "reconciliation" })`. The Transactions window doesn't listen for these item ids yet, so it opens on its default tab. TODO(revisit): have it switch to its "Needs a look" tab on that item id (`OverviewWindow.tsx`).
+- ~~**Needs a look / unexplained alerts:** they open the Transactions window with `openItem({ area: "transactions", itemId: "needs-a-look" | "reconciliation" })`. The Transactions window doesn't listen for these item ids yet, so it opens on its default tab. TODO(revisit): have it switch to its "Needs a look" tab on that item id (`OverviewWindow.tsx`).~~ **Resolved (Phase 4):** the Transactions window switches to "Needs a look" / "Balance check" on those item ids, also when it opens because of the click.
 - **A transaction click** opens the Transactions window through `openDrillDown` with `transactions.list` filtered to that day and merchant (figure `total`), since there is no single-transaction view. Usually that's exactly the one transaction.
 - **Unexplained differences** are counted for the current month (`flows.reconciliation` from the 1st to today).
 - **Recent spending** lists the spending bucket only (not income or transfers), as many rows as fit (at least 7 at the default 920 × 660 size).
@@ -140,8 +140,8 @@ Defaults chosen while building the assistant (§16; each marked `TODO(revisit):`
 - **Excluded from AI tools:** `example.setTransactionNote` (duplicates `transactions.setNote`) and `goals.markMilestonesSeen` (celebration bookkeeping), plus the non-registry UI operations (bank link, finalize, duplicate, reconnect, remove, refresh; sign-in, revoke, Touch ID). The list is `AI_EXCLUDED` in `apps/api/src/ai/tools.ts`, and the parity test is `apps/api/test/node/ai-tools.test.ts`.
 - **Approve** calls `POST /a/:name?source=ai` (logged with source `ai`). The action log uses the existing authenticated `GET /actions`; no separate `/actions/log` route was added.
 - **Proposal previews** are computed when the assistant proposes them. If the data changes before Approve, the applied change is computed fresh and may differ slightly from the card. Re-preview on Approve if that matters.
-- **Citations:** the model tags numbers `[F12]` (figure → drill-down) or `[C3]` (chart → opens that window). Numbers it writes without a tag (e.g. month-by-month trend amounts) have no link. The live check saw a few.
-- **"Explain this"** is on the Spending window's monthly summary only (`windows/spending/Summary.tsx`). Other places to add `explainWithAssistant({ query, params, figureId, label })` from `windows/assistant/explain.ts`:
+- ~~**Citations:** the model tags numbers `[F12]` (figure → drill-down) or `[C3]` (chart → opens that window). Numbers it writes without a tag (e.g. month-by-month trend amounts) have no link. The live check saw a few.~~ **Resolved (Phase 4):** untagged amounts are linked when exactly one figure seen that turn has that amount (`apps/api/src/ai/citations.ts`); ambiguous or rounded ones stay unlinked.
+- ~~**"Explain this"** is on the Spending window's monthly summary only (`windows/spending/Summary.tsx`). Other places to add `explainWithAssistant({ query, params, figureId, label })` from `windows/assistant/explain.ts`:~~ **Resolved (Phase 4):** every window but Transactions has an Explain button (`windows/shared/ExplainButton.tsx`): Budgets, Goals, Recurring, Trajectory (per tab), Investments and the Overview's spending card.
   - Spending: category bars, Sankey flows, Worth a look items
   - Budgets: the overall and part bars
   - Goals: a goal card's projected date (`goals.list`)
@@ -150,3 +150,24 @@ Defaults chosen while building the assistant (§16; each marked `TODO(revisit):`
   - Investments: performance
   - Overview: the net worth figure
 - **Seed:** every goal in the dev seed is already 100% funded, so the "finish N weeks sooner" path (`goals.whatIf`) couldn't show a date shift in the live check. An unfinished goal in the seed would exercise it.
+
+## Phase 4: verify-fix
+
+Evidence for every checkbox is in `docs/planning/criteria-verification.md`. Defaults chosen while closing gaps:
+
+- **Balance check view** (Transactions → "Balance check"): month picker over the last 12 months, the current month runs to today (same as the Overview's count). Accounts with an unexplained difference come first; investment accounts show "market change" instead. The unexplained amount itself isn't clickable (no transactions are behind it); money in / out and the across-everything terms drill down (`windows/transactions/BalanceCheckView.tsx`).
+- **Poker summary** is a Transactions tab too (`PokerView.tsx`), one month at a time. `openItem({ area: "transactions", itemId: "poker" })` opens it.
+- **Unexplained on the account:** the account sheet shows this month's unexplained difference with a link to the balance check (`accounts/AccountSheets.tsx`). The Overview's account rows don't (space).
+- **`openItem` remembers the last request** (`takePendingItem` in `data/drilldown.ts`), so a window opened by the click still gets it. Only Transactions uses it so far; Goals and Budgets still only react while already open.
+- **Milestones on create/edit:** create marks every reached milestone including completion; a target or account change marks only progress milestones, so lowering a target until the goal is complete still plays the completion (`alreadyReachedMilestones` in `packages/core/src/actions/goals/goalActions.ts`).
+- **Refund purchase search:** spending up to the refund's date, at least as big as the refund, 8 results; the core still allows any purchase (`flows.linkRefund`).
+- **Window regrow:** a move while shrunk keeps the size you chose; a resize while shrunk is a new choice; a maximised window keeps its chosen restore rect unclamped until you un-maximise.
+- **Ship scripts:** `npm run ship:api:dev`, `ship:api:prod`, `ship:app` (needs `VITE_API_URL`) each run `ship:check` (typecheck + `npm test`) first. The orchestrator's `npm run deploy:dev -w @ft/api` also tests first.
+- **Production fixture anonymiser:** `apps/api/scripts/anonymise-plaid.ts` replaces ids/names/masks/owner and location fields by key name; read its output before committing (README in `test/fixtures/plaid/production/`).
+- **Investments transfers figure:** `investments.performance` exposes `<accountId>.transfers` only when every contribution is a bank transaction whose sum equals the shown amount (brokerage-side deposits live in investment transactions, which the Transactions window can't list). The performance table gained a "Transfers in − out" column.
+- **"Add a bank" in empty states** (`windows/shared/ConnectEmptyState.tsx`): Spending's flow and saving, Trajectory's tabs and Investments; only inside a shell window.
+- **Window questions** (`AREA_INFO[area].question`) show in the dock tooltip and as the title bar's tooltip.
+- **Overview recent rows:** tighter line height so two lines fit the 31 px row; the merchant line is 1 px tight but no glyph is cut.
+- **Overview goals card crash fixed:** `goals.list` returns `contributions: null` for goals without an expected contribution.
+- **Local `node_modules/@ft` links in a worktree:** a worktree without its own `node_modules` resolves `@ft/core` to the main checkout's copy. Link them (`node_modules/@ft/{core,api,desktop}` → the worktree's packages) or run `npm install` in the worktree before testing core changes there.
+
