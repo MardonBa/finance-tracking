@@ -10,6 +10,8 @@ export interface AppEnv {
   PLAID_ENV: string;
   /** IANA zone used to compute the user's "today". */
   USER_TIME_ZONE: string;
+  /** This Worker's public base URL (no trailing slash): Plaid webhook and Hosted Link redirect page. */
+  PUBLIC_API_URL: string;
 
   DB: D1Database;
   BACKUPS: R2Bucket;
@@ -29,6 +31,8 @@ export interface AppEnv {
   BACKUP_ENC_KEY: string;
   /** Secret pepper for hashing app tokens (HMAC-SHA256). */
   APP_TOKEN_PEPPER: string;
+  /** Local-dev-only bearer token. Honoured ONLY when ENVIRONMENT is "dev"; ignored in production. */
+  DEV_APP_TOKEN?: string;
 }
 
 declare global {
