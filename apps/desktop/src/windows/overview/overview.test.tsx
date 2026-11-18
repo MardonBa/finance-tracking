@@ -246,4 +246,38 @@ describe("OverviewWindow", { timeout: 30_000 }, () => {
       cap.off();
     }
   });
+
+  it("'Add account' offers a bank (the same Plaid flow) or a manual account; accounts show importing, then updated, and manual ones are labelled", async () => {
+    const { render } = await import("@testing-library/react");
+    const { AppTokenContext, WindowContext } = await import("../../shell/context.ts");
+    const { CONNECTIONS_CHANGED_EVENT } = await import("../../connections/useConnections.ts");
+    const addBanks = vi.fn();
+    h.connections = [{ ...healthy, importStatus: "importing" }];
+    const win = { area: "overview" as const, token: "t", open() {}, close() {}, minimize() {}, addBanks };
+    render(
+      <AppTokenContext.Provider value="t">
+        <WindowContext.Provider value={win}>
+          <OverviewWindow />
+        </WindowContext.Provider>
+      </AppTokenContext.Provider>,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "Add account" }));
+    const menu = screen.getByRole("menu", { name: "Add account" });
+    expect(within(menu).getByRole("menuitem", { name: /Manual account/ })).toBeTruthy();
+    fireEvent.click(within(menu).getByRole("menuitem", { name: /Bank or card/ }));
+    expect(addBanks).toHaveBeenCalledTimes(1);
+    // While the bank's history downloads, its accounts say so; then they show when they were updated.
+    const card = () => document.querySelector(".ov-accounts") as HTMLElement;
+    await waitFor(() => expect(within(card()).getAllByText("Importing transactions…").length).toBeGreaterThan(0));
+    h.connections = [healthy];
+    window.dispatchEvent(new Event(CONNECTIONS_CHANGED_EVENT));
+    await waitFor(() => expect(within(card()).queryByText("Importing transactions…")).toBeNull());
+    expect(within(card()).getAllByText(/^Updated /).length).toBeGreaterThan(0);
+    // The manual cash account is labelled as manual (in "All accounts" if it doesn't fit the card).
+    const more = within(card()).queryByRole("button", { name: /more accounts$/ });
+    if (more) fireEvent.click(more);
+    const cash = (await screen.findAllByRole("button", { name: /^Cash\. Account details$/ })).at(-1)!;
+    expect(within(cash).getByText("Manual")).toBeTruthy();
+    expect(within(cash).getByText("Entered by hand")).toBeTruthy();
+  });
 });
