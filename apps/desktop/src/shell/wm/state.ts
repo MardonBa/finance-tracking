@@ -11,6 +11,9 @@
  * - Every window lies fully inside the desktop (`viewport`), so its title
  *   bar is always visible; sizes never go below the area's minimum unless
  *   the desktop itself is smaller.
+ * - A window remembers the rect the user last chose (`preferred`). When the
+ *   app window shrinks, windows shrink to fit; when it grows again they grow
+ *   back toward that rect.
  */
 import { AREA_INFO, AREAS, type AreaId, type Size } from "../areas.ts";
 
@@ -25,8 +28,10 @@ export interface WindowState extends Rect {
   area: AreaId;
   minimized: boolean;
   maximized: boolean;
-  /** Rect to go back to when un-maximising. */
+  /** Rect to go back to when un-maximising (as chosen, not clamped). */
   restore: Rect | null;
+  /** The rect the user last chose (open, move, resize). Fitting to a smaller desktop never changes it. */
+  preferred?: Rect;
 }
 
 export interface WMState {
@@ -135,13 +140,14 @@ function withWindow(state: WMState, area: AreaId, patch: Partial<WindowState>): 
   return { ...state, windows: { ...state.windows, [area]: { ...win, ...patch } } };
 }
 
+const rectOf = (r: Rect): Rect => ({ x: r.x, y: r.y, w: r.w, h: r.h });
+
+/** Fits a window to a new desktop size, starting from the rect the user chose, so it grows back when there's room. */
 function fit(win: WindowState, viewport: Size): WindowState {
-  if (win.maximized) return { ...win, ...fullRect(viewport), restore: win.restore && clampRect(win.restore, viewport, minSizeOf(win.area)) };
-  return { ...win, ...clampRect(win, viewport, minSizeOf(win.area)) };
+  if (win.maximized) return { ...win, ...fullRect(viewport) };
+  return { ...win, ...clampRect(win.preferred ?? win, viewport, minSizeOf(win.area)) };
 }
 
-// TODO(revisit): when the app window shrinks, windows are shrunk to fit and
-// keep that size when it grows again (no remembered "preferred" size).
 export function wmReducer(state: WMState, action: WMAction): WMState {
   switch (action.type) {
     case "open": {
@@ -150,7 +156,7 @@ export function wmReducer(state: WMState, action: WMAction): WMState {
         return { ...withWindow(state, action.area, { minimized: false }), order: toFront(state.order, action.area), focused: action.area };
       }
       const rect = placeNewWindow(action.area, state);
-      const win: WindowState = { area: action.area, ...rect, minimized: false, maximized: false, restore: null };
+      const win: WindowState = { area: action.area, ...rect, minimized: false, maximized: false, restore: null, preferred: rect };
       return {
         ...state,
         windows: { ...state.windows, [action.area]: win },
@@ -182,8 +188,8 @@ export function wmReducer(state: WMState, action: WMAction): WMState {
       const win = state.windows[action.area];
       if (!win) return state;
       const patch: Partial<WindowState> = win.maximized
-        ? { maximized: false, restore: null, ...clampRect(win.restore ?? win, state.viewport, minSizeOf(win.area)) }
-        : { maximized: true, restore: { x: win.x, y: win.y, w: win.w, h: win.h }, ...fullRect(state.viewport) };
+        ? { maximized: false, restore: null, ...clampRect(win.restore ?? win.preferred ?? win, state.viewport, minSizeOf(win.area)) }
+        : { maximized: true, restore: rectOf(win.preferred ?? win), ...fullRect(state.viewport) };
       return { ...withWindow(state, action.area, { ...patch, minimized: false }), order: toFront(state.order, action.area), focused: action.area };
     }
     case "move": {
@@ -192,12 +198,15 @@ export function wmReducer(state: WMState, action: WMAction): WMState {
       // Dragging a maximised window un-maximises it at its restore size.
       const size = win.maximized && win.restore ? { w: win.restore.w, h: win.restore.h } : { w: win.w, h: win.h };
       const rect = clampRect({ x: action.x, y: action.y, ...size }, state.viewport, minSizeOf(win.area));
-      return withWindow(state, action.area, { ...rect, maximized: false, restore: null });
+      // A move keeps the size the user chose (it may only be shrunk to fit right now).
+      const wanted = win.maximized && win.restore ? win.restore : (win.preferred ?? win);
+      return withWindow(state, action.area, { ...rect, maximized: false, restore: null, preferred: { x: rect.x, y: rect.y, w: wanted.w, h: wanted.h } });
     }
     case "resize": {
       const win = state.windows[action.area];
       if (!win) return state;
-      return withWindow(state, action.area, { ...clampRect(action.rect, state.viewport, minSizeOf(win.area)), maximized: false, restore: null });
+      const rect = clampRect(action.rect, state.viewport, minSizeOf(win.area));
+      return withWindow(state, action.area, { ...rect, maximized: false, restore: null, preferred: rect });
     }
     case "setViewport": {
       const viewport = { w: Math.max(0, Math.floor(action.viewport.w)), h: Math.max(0, Math.floor(action.viewport.h)) };

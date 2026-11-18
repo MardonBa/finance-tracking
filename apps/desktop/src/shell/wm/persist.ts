@@ -66,6 +66,7 @@ export function deserialize(json: string | null, viewport: Size): WMState {
       minimized: o.minimized === true,
       maximized: o.maximized === true,
       restore: readRect(o.restore),
+      ...(readRect(o.preferred) ? { preferred: readRect(o.preferred)! } : {}),
     };
   }
   const order: AreaId[] = [];
