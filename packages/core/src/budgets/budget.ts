@@ -53,7 +53,10 @@ export function partsForPeriod(parts: readonly BudgetPart[], budgetId: Id, perio
 
 export type Assignment = { kind: "trip"; tripId: Id } | { kind: "part"; partId: Id } | { kind: "everything_else" };
 
-/** Which single line an entry counts toward. */
+/**
+ * Which single line an entry counts toward.
+ * TODO(revisit): a merchant part beats a category part (the criteria only fix tag > category).
+ */
 export function assignEntry(
   e: LedgerEntry,
   parts: readonly BudgetPart[],
@@ -248,6 +251,7 @@ function cell(period: Period, b: BudgetBar, figureKey: string): PlanCell {
 }
 
 /**
+ * TODO(revisit): "Everything else" is a remainder row in the history, not a part with its own plan.
  * Planned vs actual per row (overall, each part by name, everything else)
  * for the `count` periods ending with the one containing `endDate`, oldest
  * first; plus the track record over those periods. Rows group part versions

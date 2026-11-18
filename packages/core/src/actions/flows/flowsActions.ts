@@ -135,7 +135,7 @@ export const markTransfer: ActionDef<typeof markTransferInput, LedgerKey> = defi
 
 const unmarkTransferInput = z.object({
     transactionId: idSchema,
-    /** What it is instead, if it would still look like a transfer. Default: spending. */
+    /** What it is instead, if it would still look like a transfer. TODO(revisit): default spending. */
     countAs: z.enum(["spending", "income", "poker"]).default("spending"),
   });
 

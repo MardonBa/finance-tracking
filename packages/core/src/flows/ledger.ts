@@ -291,6 +291,7 @@ export function buildLedger(data: LedgerData): Ledger {
     if (t.amountCents > 0 && acc?.incomeFallback && (p === null || p === "OTHER")) {
       return { bucket: "income", reason: "account_fallback" };
     }
+    // TODO(revisit): unlabelled inflows count as credits against spending (never income).
     return t.amountCents < 0 ? { bucket: "spending", reason: "outflow" } : { bucket: "spending", reason: "inflow" };
   };
 

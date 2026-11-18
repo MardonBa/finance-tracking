@@ -107,6 +107,7 @@ export function suggestTransferMatches(input: TransferMatchInput): TransferLink[
         const income = (t: Transaction) => isPlaidIncomeCategory(t.plaidCategoryPrimary, t.plaidCategoryDetailed);
         if ((oLab || iLab || loose(o) || loose(i)) && !income(i)) pass = 2;
       }
+      // TODO(revisit): amount-only matches need one transfer-labelled (or uncategorised) half.
       if (pass === null) continue;
       cands.push({ out: o, in: i, pass, gap });
     }
