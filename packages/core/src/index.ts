@@ -11,3 +11,7 @@ export * as Goals from "./goals/index.ts";
 export * as Recurring from "./recurring/index.ts";
 export * as Trajectory from "./trajectory/index.ts";
 export * as Investments from "./investments/index.ts";
+// core-flows modules (§1, §6, §7, §8, §10), namespaced the same way.
+export * as Flows from "./flows/index.ts";
+export * as Spending from "./spending/index.ts";
+export * as Budgets from "./budgets/index.ts";

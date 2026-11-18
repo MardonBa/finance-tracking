@@ -40,3 +40,19 @@ Defaults and placeholders chosen while building autonomously. Each has a matchin
 - **Category colours:** 6 named colours, categories under 2% of the total share "Other" (`src/ui/colorMap.ts`).
 - **Dev auth bypass:** `VITE_DEV_AUTH_BYPASS=1` must be passed on the command line; `sync-dev-vars` doesn't write it (`src/api/client.ts`).
 - **"Add a bank" before Phase 2:** shows a placeholder dialog until the onboarding track registers the `add-banks` step (`src/auth/AuthGate.tsx`).
+
+## Phase 1: core-flows
+
+- **Transfer window:** automatic matching pairs equal amounts within 5 calendar days (`MATCH_WINDOW_DAYS`, `packages/core/src/flows/transfers.ts`). Amount-only matches need one half labelled as a transfer by Plaid (or uncategorised, e.g. cash) and are flagged for review in Needs a look.
+- **Refund window:** refunds are suggested against purchases up to 90 days earlier (`REFUND_WINDOW_DAYS`, `flows/refunds.ts`).
+- **Unlabelled money in:** an inflow with no income category, rule or override counts as a credit against spending (an unlinked refund or reimbursement), never as income (`flows/ledger.ts`).
+- **Undoing a transfer:** if a transaction still looks like a transfer after unmatching (Plaid's label or a rule), it is set to spending unless another bucket is chosen (`flows.unmarkTransfer`).
+- **Dividends from investment transactions:** brokerage dividends/interest are read from `investmentTransactions`; if an institution also reports them in `/transactions`, they would count twice (`flows/ledger.ts`).
+- **Needs a look thresholds:** last 90 days by default; "large unusual" = more than 3× the category's 180-day average and at least $100 above it, or ≥ $500 with little history unless the same merchant charged a similar amount before; duplicates = same account, amount and merchant on the same day (`flows/needsALook.ts`).
+- **Worth a look thresholds:** category pace ≥ 1.25× usual-by-this-day and ≥ $25 above; rising merchant ≥ 1.5× and ≥ $20 above, or three rising months; small frequent = ≥ 5 purchases of ≤ $15 in one detailed category (`spending/worthALook.ts`).
+- **Recurring signals:** Worth a look derives "new recurring" (first seen this month) and "price increase" (last > average by 5%) from `recurringItems` until the recurring module exposes its own detection (`queries/spending/spendingQueries.ts`).
+- **Rules apply to the past too:** "always for this merchant" rules are evaluated on read, so they also recategorise earlier transactions; there is no "from date" on rules (`transactions.recategorise`).
+- **Budget part priority:** trip → tag part → merchant part → category part → Everything else. The criteria fix only tag > category; merchant > category is a choice (`budgets/budget.ts`).
+- **Budget history rows:** part versions are grouped by name, so renaming a part starts a new history row; "Everything else" is a remainder row, not a part with its own plan (`budgets/budget.ts`).
+- **Plan edits:** changing an amount or a part applies from the start of the current period; finished periods keep their plan.
+- **Opening balances:** transactions whose id ends in `__opening` (from `accounts.addManualAccount`) are always transfers, never auto-matched and never "saved", even if an override says otherwise (`flows/ledger.ts`). This replaces relying on the confirmed transfer override alone.
