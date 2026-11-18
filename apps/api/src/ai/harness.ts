@@ -14,6 +14,7 @@ import { accountLabels, forModel, scrubString, type AccountLabels } from "./priv
 import { builtInPrompt, systemPrompt } from "./prompts.ts";
 import { checkBudget, cooldownFrom, cooldownUntil, limitsFor, recordRequest, setCooldown, type Blocked } from "./rateLimit.ts";
 import { declarations, readToolName, tools, type Tool } from "./tools.ts";
+import { linkUntaggedAmounts } from "./citations.ts";
 
 /** At most this many rounds of tool calls per turn (Worker CPU and free-tier requests). */
 export const MAX_TOOL_ROUNDS = 6;
@@ -300,6 +301,7 @@ export async function runChat(env: AppEnv, rawRequest: unknown, nowMs: () => num
     contents.push({ role: "user", parts: responses });
   }
 
+  text = linkUntaggedAmounts(text, state.tags);
   const cited: Record<string, Citation> = {};
   for (const m of text.matchAll(/\[([FC]\d+(?:\s*,\s*[FC]\d+)*)\]/g)) {
     for (const tag of m[1]!.split(/\s*,\s*/)) {
@@ -309,3 +311,4 @@ export async function runChat(env: AppEnv, rawRequest: unknown, nowMs: () => num
   }
   return { text, proposals: state.proposals, citations: cited, nextTag: state.nextTag, rounds, model, sent, usage };
 }
+
