@@ -485,6 +485,29 @@ export const balanceSnapshots = sqliteTable(
   (t) => [primaryKey({ columns: [t.accountId, t.date] })],
 );
 
+// =================================================================== trajectory assumptions (§12)
+
+export const trajectoryAssumptions = sqliteTable("trajectory_assumptions", {
+  id: text("id").primaryKey(), // singleton key "default": one editable set of projection assumptions (§12)
+  assumptionsJson: text("assumptions_json").notNull(), // return, HYSA rate, inflation, income/spending, contributions, range; validated by @ft/core (§12)
+  updatedAt: text("updated_at").notNull(), // when I last edited the assumptions, shown next to the projection (§12)
+});
+
+export const lifePhases = sqliteTable("life_phases", {
+  id: text("id").primaryKey(), // stable id so a phase can be edited or removed (§12)
+  name: text("name").notNull(), // label shown on the projection, e.g. "Grad school" (§12)
+  fromYear: integer("from_year").notNull(), // first calendar year the phase applies to (§12)
+  toYear: integer("to_year").notNull(), // last calendar year the phase applies to, inclusive (§12)
+  monthlyIncomeCents: integer("monthly_income_cents"), // income per month in this phase; null keeps the previous value (§12)
+  monthlySpendingCents: integer("monthly_spending_cents"), // spending per month in this phase; null keeps the previous value (§12)
+  savingsRatePct: real("savings_rate_pct"), // share of income saved; sets spending when given (§12)
+  investmentReturnPct: real("investment_return_pct"), // expected annual return in this phase (§12)
+  hysaRatePct: real("hysa_rate_pct"), // HYSA interest rate in this phase (§12)
+  inflationPct: real("inflation_pct"), // inflation for the today's-dollars toggle in this phase (§12)
+  contributionsJson: text("contributions_json"), // monthly contribution per account in this phase, JSON; null keeps the previous (§12)
+  updatedAt: text("updated_at").notNull(), // when I last edited the phase (§12)
+});
+
 // =================================================================== system (not part of CoreData)
 
 export const appCredentials = sqliteTable(
