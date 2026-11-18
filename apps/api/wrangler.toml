@@ -30,6 +30,12 @@ USER_TIME_ZONE = "America/New_York"
 # only arrive on the deployed dev Worker.
 # TODO(revisit): set to the deployed dev Worker URL (https://ft-api-dev.<subdomain>.workers.dev).
 PUBLIC_API_URL = "http://localhost:8787"
+# AI assistant (§16): model, fallback on quota errors, and our own request budget.
+# TODO(revisit): free-tier limits change; check AI Studio for this project's real RPM/RPD.
+GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_FALLBACK_MODEL = "gemini-2.5-flash-lite"
+AI_RPM_LIMIT = "10"
+AI_RPD_LIMIT = "250"
 
 [[env.dev.d1_databases]]
 binding = "DB"
@@ -59,6 +65,10 @@ PLAID_ENV = "production"
 USER_TIME_ZONE = "America/New_York"
 # TODO(revisit): PLACEHOLDER (Phase 4): the production Worker URL.
 PUBLIC_API_URL = "https://ft-api.example.workers.dev"
+GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_FALLBACK_MODEL = "gemini-2.5-flash-lite"
+AI_RPM_LIMIT = "10"
+AI_RPD_LIMIT = "250"
 
 [[env.production.d1_databases]]
 binding = "DB"
