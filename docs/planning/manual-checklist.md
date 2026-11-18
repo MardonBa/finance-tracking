@@ -20,3 +20,11 @@ Steps only you can do: real Touch ID, browser sign-in, real banks, production. E
 - [ ] Restore one backup into a fresh remote database (`docs/backup-restore.md`).
 - [ ] Production: set `PUBLIC_API_URL` and all production secrets (`PLAID_SECRET`, `TOKEN_ENC_KEY`, `BACKUP_ENC_KEY`, `APP_TOKEN_PEPPER`).
 - [ ] Real Chase: finish Chase's OAuth registration in the Plaid dashboard.
+
+## Budgets & goals
+
+- [ ] In the Tauri app (`npm run dev`), add a goal picture: it is saved under the app data dir (`~/Library/Application Support/<bundle id>/goal-pictures/`) and still shows after a restart. Delete that folder: the card shows the placeholder and "Add picture".
+- [ ] Turn on System Settings → Accessibility → Display → Reduce motion, cross a goal milestone, open Goals: the celebration fades in with no confetti.
+- [ ] Drag goal priorities with a trackpad: the card lifts, the others slide, the blue drop line shows, and the projected dates change while dragging. Then do the same with Tab + arrow keys and VoiceOver on (it announces "moved to priority N").
+- [ ] Each celebration plays once: cross a milestone, open Goals (it plays), close and reopen Goals and the Overview (it doesn't play again).
+- [ ] Click a budget bar, a pending extension, a trip month and a history cell: the Transactions window lists exactly the transactions and its total matches the number clicked (needs the transactions-spending window merged).
