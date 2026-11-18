@@ -28,6 +28,12 @@ Steps only you can do: real Touch ID, browser sign-in, real banks, production. E
 - [ ] Drag goal priorities with a trackpad: the card lifts, the others slide, the blue drop line shows, and the projected dates change while dragging. Then do the same with Tab + arrow keys and VoiceOver on (it announces "moved to priority N").
 - [ ] Each celebration plays once: cross a milestone, open Goals (it plays), close and reopen Goals and the Overview (it doesn't play again).
 - [ ] Click a budget bar, a pending extension, a trip month and a history cell: the Transactions window lists exactly the transactions and its total matches the number clicked (needs the transactions-spending window merged).
+## Transactions & spending
+- [ ] With real data: click a few Sankey flows, category bars, heatmap days and top-merchant totals in Spending and check the Transactions total matches what you clicked and the transactions look right.
+- [ ] Check that merchant grouping looks sensible on your real merchants; try one merge and one separate, then Undo.
+- [ ] Label your main categories and merchants as necessary / not necessary (Spending → Necessary?) and see that the "not set" amount shrinks.
+- [ ] Glance at the Spending window at its default size: the summary and flow should be readable without scrolling, everything else behind tabs.
+- [ ] Contrast check of the heatmap shades and Sankey labels with a contrast tool.
 
 ## Recurring, trajectory & investments
 - [ ] Recurring: with a real bank connected, the upcoming view for your checking account lists the bills and card statement you expect before your next paycheck, and the lowest point looks right.
