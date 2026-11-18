@@ -43,6 +43,7 @@ export function periodRange(period: Period, today = todayIso()): { from: string;
 }
 
 export function MerchantView({ req }: { req: MerchantRequest }) {
+  // TODO(revisit): the merchant view opens on the last 12 months.
   const [period, setPeriod] = useState<Period>("12m");
   const [open, setOpen] = useState<string | null>(null);
   const [editing, setEditing] = useState<"merge" | "separate" | null>(null);

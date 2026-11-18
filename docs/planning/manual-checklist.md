@@ -20,3 +20,10 @@ Steps only you can do: real Touch ID, browser sign-in, real banks, production. E
 - [ ] Restore one backup into a fresh remote database (`docs/backup-restore.md`).
 - [ ] Production: set `PUBLIC_API_URL` and all production secrets (`PLAID_SECRET`, `TOKEN_ENC_KEY`, `BACKUP_ENC_KEY`, `APP_TOKEN_PEPPER`).
 - [ ] Real Chase: finish Chase's OAuth registration in the Plaid dashboard.
+
+## Transactions & spending
+- [ ] With real data: click a few Sankey flows, category bars, heatmap days and top-merchant totals in Spending and check the Transactions total matches what you clicked and the transactions look right.
+- [ ] Check that merchant grouping looks sensible on your real merchants; try one merge and one separate, then Undo.
+- [ ] Label your main categories and merchants as necessary / not necessary (Spending → Necessary?) and see that the "not set" amount shrinks.
+- [ ] Glance at the Spending window at its default size: the summary and flow should be readable without scrolling, everything else behind tabs.
+- [ ] Contrast check of the heatmap shades and Sankey labels with a contrast tool.

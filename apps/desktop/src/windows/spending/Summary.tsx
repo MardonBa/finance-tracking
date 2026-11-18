@@ -42,6 +42,7 @@ export function Summary({ month, usualMonths }: { month: string; usualMonths: 1 
       detail={
         <span className="sp-versus">
           <Versus label={`vs ${prevLabel}`} cents={v.vsPrevious[key].cents} diff={v.vsPrevious[key].diffCents} onClick={s.drill(`previous.${key}`)} />
+          {/* TODO(revisit): "usual" is an average, not a sum of transactions, so it has no single figure to drill into. */}
           <Versus label="vs usual" cents={v.vsUsual[key].cents} diff={v.vsUsual[key].diffCents} />
         </span>
       }
@@ -52,6 +53,7 @@ export function Summary({ month, usualMonths }: { month: string; usualMonths: 1 
       {stat("income", v.pokerNetCents !== 0 ? `Income (incl. Poker ${signed(v.pokerNetCents)})` : "Income", v.incomeCents)}
       {stat("spending", "Spending", v.spendingCents)}
       {stat("saved", v.savedCents < 0 ? "Overspent" : "Saved", v.savedCents)}
+      {/* TODO(revisit): the savings rate is a ratio, not money, so it isn't clickable; Saved next to it is. */}
       <StatNumber
         label="Savings rate"
         value={pct(v.savingsRate)}

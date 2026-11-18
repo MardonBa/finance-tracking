@@ -72,3 +72,18 @@ Resolved from Phase 0: the Plaid webhook is now verified and handled, `scheduled
 - **Free-plan limits on a first import:** sync writes in bulk (`json_each`) and commits per page, but a real 24-month import hasn't been measured against the Workers Free plan's 10 ms CPU and per-invocation query limits (`apps/api/src/db/bulk.ts`). An interrupted run resumes from the saved cursor.
 - **Seams for the core tracks:** `apps/api/src/sync/hooks.ts` (`afterTransactionsSynced` for classification and transfer matching, `afterDailySnapshots` for rebuild and downsampling) are no-ops until core-flows and core-balances wire them up. Manual accounts are snapshotted from `current_balance_cents`; computing that balance from their transactions belongs to core.
 - **Manual checks (user):** Hosted Link in a browser with Sandbox `user_good`/`pass_good`, the Platypus OAuth Bank, cancelling partway, and webhook delivery to a deployed dev Worker (`docs/planning/plaid-hosted-link-spike.md`). Also a real restore into a fresh remote database (`docs/backup-restore.md`), and Google sign-in with a non-allowed account (should get 403).
+
+## Phase 2: transactions-spending
+
+Defaults chosen while building the Transactions and Spending windows (each marked `TODO(revisit):` in code).
+
+- **"Usual" and the savings rate aren't clickable.** "Usual" is an average of 1–3 months and the savings rate is a ratio, so neither is a sum of transactions. Income, spending, saved and the previous month's values all drill down (`windows/spending/Summary.tsx`).
+- **Linking a refund** only offers the suggestions from `flows.refundSuggestions` (same merchant, ≤ purchase, 90 days). Picking any purchase by hand isn't offered yet (`windows/transactions/RowFixes.tsx`).
+- **Merchant view period:** opens on the last 12 months, with This month / 3 months / 12 months to switch (`windows/transactions/MerchantView.tsx`).
+- **Search paging:** 200 rows, "Show more" up to 1000 (the query's limit) (`windows/transactions/SearchView.tsx`).
+- **Needs a look fixes run in one click** (no separate preview step) and then show the before → after with Undo; row fixes elsewhere preview first, then Apply.
+- **One note per matched transfer:** `transactions.setNote` now stores the pair's note on the money-out half and clears any note on the other half (core change, tested in `packages/core/test/flows/windowQueries.test.ts`).
+- **Category colours** come from the last 12 months of spending by broad category (`src/data/useCategoryColors.ts`); the Spending and Transactions windows install it. Other windows can call the same hook so colours agree.
+- **Spending tabs:** Flow (default), Categories, Merchants, Calendar, Saving, Necessary?, Worth a look. Small multiples and saved-by-destination show 6 months; top merchants and the savings rate 12.
+- **Heatmap shading** uses 5 steps scaled to the month's biggest day, so one rent day makes other days pale; the amount is printed in every cell.
+- **New core queries:** `transactions.filterOptions` (categories and tags for filters and fixes) and `spending.necessityLabels` (what to label, with spend and current label). Rows now carry `tagIds`, `necessity` and `necessitySource`.

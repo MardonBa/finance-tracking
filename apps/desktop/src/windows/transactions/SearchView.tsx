@@ -31,6 +31,7 @@ export interface SearchFilters {
 
 export const NO_FILTERS: SearchFilters = { text: "", from: "", to: "", accountId: "", category: "" };
 
+// TODO(revisit): 200 rows per page, at most 1000 (the query's limit); no infinite scroll yet.
 const PAGE = 200;
 
 export function listParams(f: SearchFilters, limit = PAGE) {
