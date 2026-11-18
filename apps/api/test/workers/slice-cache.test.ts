@@ -55,6 +55,17 @@ describe("slice cache", () => {
     expect(reads("transactions")).toBe(2);
   });
 
+  it("queries say which slices they read, and actions and undo say which slices they changed", async () => {
+    const q = (await (await request("/q/goals.accountBars", { method: "POST", body: "{}" })).json()) as { needs: string[] };
+    expect(q.needs).toEqual(["accounts", "goals", "balanceSnapshots"]);
+    const applied = (await (
+      await request("/a/transactions.setNote", { method: "POST", body: JSON.stringify({ transactionId: "tx_poker_in", note: "x" }) })
+    ).json()) as { logId: string; changed: string[] };
+    expect(applied.changed).toEqual(["overrides"]);
+    const undone = (await (await request(`/actions/${applied.logId}/undo`, { method: "POST" })).json()) as { changed: string[] };
+    expect(undone.changed).toEqual(["overrides"]);
+  });
+
   it("every data table has insert, update and delete triggers and a version row", async () => {
     const triggers = new Set((await rows<{ name: string }>("SELECT name FROM sqlite_master WHERE type = 'trigger'")).map((r) => r.name));
     const versions = new Set((await rows<{ slice: string }>("SELECT slice FROM slice_versions")).map((r) => r.slice));

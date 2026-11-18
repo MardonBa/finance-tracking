@@ -4,7 +4,7 @@
  * bank is still importing its history, every few seconds.
  */
 import { useCallback, useEffect, useState } from "react";
-import { DATA_CHANGED_EVENT } from "../data/hooks.ts";
+import { DATA_CHANGED_EVENT, affects, type DataChangedDetail } from "../data/hooks.ts";
 import { connectionsApi, type ConnectionHealth } from "./api.ts";
 
 export const CONNECTIONS_CHANGED_EVENT = "ft:connections-changed";
@@ -28,7 +28,10 @@ export function useConnections(token: string, opts: { pollWhileImporting?: boole
   const refetch = useCallback(() => setTick((t) => t + 1), []);
 
   useEffect(() => {
-    const on = () => setTick((t) => t + 1);
+    // Connection health shows banks and their accounts: skip edits that touch neither (e.g. a note).
+    const on = (e: Event) => {
+      if (affects(["items", "accounts"], (e as CustomEvent<DataChangedDetail | undefined>).detail?.slices)) setTick((t) => t + 1);
+    };
     window.addEventListener(DATA_CHANGED_EVENT, on);
     window.addEventListener(CONNECTIONS_CHANGED_EVENT, on);
     return () => {

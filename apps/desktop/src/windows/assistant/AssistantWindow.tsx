@@ -229,8 +229,8 @@ function ActionLogPanel({ token, refreshKey, onUndone }: { token: string; refres
 
   const undo = async (id: string) => {
     try {
-      await undoLogged(token, id);
-      notifyDataChanged();
+      const res = await undoLogged(token, id);
+      notifyDataChanged(res.changed);
       onUndone(id);
       setTick((t) => t + 1);
     } catch (e) {
@@ -355,7 +355,7 @@ export function AssistantWindow() {
     setProposal(turnId, s.proposal.id, { status: "applying", error: undefined });
     try {
       const res = await approveProposal(token, s.proposal);
-      notifyDataChanged();
+      notifyDataChanged(res.changed);
       setProposal(turnId, s.proposal.id, { status: "applied", logId: res.logId });
       setLogKey((k) => k + 1);
     } catch (e) {
@@ -366,8 +366,8 @@ export function AssistantWindow() {
   const undo = async (turnId: number, s: ProposalState) => {
     if (!s.logId) return;
     try {
-      await undoLogged(token, s.logId);
-      notifyDataChanged();
+      const res = await undoLogged(token, s.logId);
+      notifyDataChanged(res.changed);
       setProposal(turnId, s.proposal.id, { status: "undone" });
       setLogKey((k) => k + 1);
     } catch (e) {

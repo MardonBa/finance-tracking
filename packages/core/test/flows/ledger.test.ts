@@ -282,3 +282,30 @@ describe("hand-checked October totals of the flows fixture", () => {
     expect(monthTotals(l, "2026-09").spendingCents).toBe(150000 + 20000 + 6000 + 50000 + 10000 - 4000);
   });
 });
+
+describe("buildLedger memo (one build per data version)", () => {
+  const frozen = () => {
+    const d = flowsFixture().data;
+    const out: Record<string, unknown> = { ...d };
+    for (const [k, v] of Object.entries(d)) if (Array.isArray(v)) out[k] = Object.freeze(v.map((r) => Object.freeze({ ...r })));
+    return out as unknown as typeof d;
+  };
+
+  it("returns the same, frozen ledger for the same frozen inputs", () => {
+    const d = frozen();
+    const a = buildLedger(d);
+    expect(buildLedger({ ...d })).toBe(a); // a different wrapper object, same arrays
+    expect(Object.isFrozen(a.entries)).toBe(true);
+    expect(Object.isFrozen(a.entries[0])).toBe(true);
+    expect(buildLedger(flowsFixture().data)).toEqual(a); // same result as a fresh build
+  });
+
+  it("rebuilds when any input array changes, and never memoizes ordinary arrays", () => {
+    const d = frozen();
+    const a = buildLedger(d);
+    expect(buildLedger({ ...d, rules: Object.freeze([...d.rules]) as typeof d.rules })).not.toBe(a);
+    const plain = flowsFixture().data;
+    expect(buildLedger(plain)).not.toBe(buildLedger(plain));
+    expect(Object.isFrozen(buildLedger(plain).entries)).toBe(false);
+  });
+});

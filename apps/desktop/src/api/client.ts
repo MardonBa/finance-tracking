@@ -40,11 +40,15 @@ export class ApiError extends Error {
 export interface QueryResponse<V> {
   value: V;
   figures: Record<string, Figure>;
+  /** Data slices the query reads (the app refetches it only when one of them changes). */
+  needs?: string[];
 }
 
 export interface ActionResponse {
   logId: string;
   preview: ActionPreview;
+  /** Data slices the action changed. */
+  changed?: string[];
 }
 
 /** Any backend route (connections, refresh, auth), with the same 401 handling as queries. */
@@ -78,7 +82,7 @@ export function runAction(token: string, name: string, input: unknown): Promise<
   return call(`/a/${encodeURIComponent(name)}`, token, { method: "POST", body: JSON.stringify(input) });
 }
 
-export function undoAction(token: string, logId: string): Promise<{ undone: string }> {
+export function undoAction(token: string, logId: string): Promise<{ undone: string; changed?: string[] }> {
   return call(`/actions/${encodeURIComponent(logId)}/undo`, token, { method: "POST" });
 }
 

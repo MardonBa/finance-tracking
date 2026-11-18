@@ -79,7 +79,12 @@ export async function applyAction(env: AppEnv, name: string, rawInput: unknown, 
     undoneAt: null,
   });
   await db.batch([log, ...mutationStatements(db, mutations)]);
-  return { logId, preview };
+  return { logId, preview, changed: changedSlices(mutations) };
+}
+
+/** The data slices a list of mutations touches: the app refetches only queries that read them. */
+export function changedSlices(mutations: readonly Mutation[]): string[] {
+  return [...new Set(mutations.map((m) => m.table as string))].sort();
 }
 
 export async function undoAction(env: AppEnv, logId: string) {
@@ -94,7 +99,7 @@ export async function undoAction(env: AppEnv, logId: string) {
     db.update(actionLog).set({ undoneAt: now }).where(eq(actionLog.id, logId)),
     ...mutationStatements(db, inverse),
   ]);
-  return { undone: logId };
+  return { undone: logId, changed: changedSlices(inverse) };
 }
 
 export const registryRoutes = new Hono<HonoEnv>()
@@ -108,9 +113,9 @@ export const registryRoutes = new Hono<HonoEnv>()
         return c.json({ error: "params must be URL-encoded JSON" }, 400);
       }
     }
-    return c.json(await runQuery(c.env, c.req.param("name"), params));
+    return c.json(withNeeds(c.req.param("name"), await runQuery(c.env, c.req.param("name"), params)));
   })
-  .post("/q/:name", async (c) => c.json(await runQuery(c.env, c.req.param("name"), await readJson(c.req.raw))))
+  .post("/q/:name", async (c) => c.json(withNeeds(c.req.param("name"), await runQuery(c.env, c.req.param("name"), await readJson(c.req.raw)))))
   .post("/a/:name/preview", async (c) =>
     c.json({ preview: await previewAction(c.env, c.req.param("name"), await readJson(c.req.raw)) }),
   )
@@ -136,6 +141,11 @@ export const registryRoutes = new Hono<HonoEnv>()
     return c.json({ actions: rows });
   })
   .post("/actions/:id/undo", async (c) => c.json(await undoAction(c.env, c.req.param("id"))));
+
+/** Add the slices the query reads, so the app can skip refetching it when other data changes. */
+function withNeeds<R extends object>(name: string, result: R): R & { needs: readonly string[] } {
+  return { ...result, needs: queryRegistry.get(name)?.needs ?? [] };
+}
 
 async function readJson(req: Request): Promise<unknown> {
   const text = await req.text();

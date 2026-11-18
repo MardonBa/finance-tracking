@@ -225,7 +225,43 @@ function applyRules(rules: readonly Rule[], tx: Transaction, merchant: ResolvedM
 const byKey = (a: { id: string; position?: number }, b: { id: string; position?: number }) =>
   (a.position ?? 0) - (b.position ?? 0) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 
+/**
+ * Memo for buildLedger. Many queries on one screen build the same ledger; the
+ * API hands them the SAME frozen arrays while the data is unchanged (its slice
+ * cache), so the ledger is built once per data version. Only frozen inputs are
+ * memoized (they can't change); a memoized ledger's entries and arrays are frozen
+ * too, so no caller can alter what another caller sees. Ordinary arrays (tests,
+ * filtered data) always build fresh. Keyed weakly on the transactions array.
+ */
+const ledgerMemo = new WeakMap<object, { inputs: readonly unknown[]; ledger: Ledger }>();
+
+function ledgerInputs(data: LedgerData): readonly unknown[] {
+  return LEDGER_NEEDS.map((k) => (data as Partial<Record<string, unknown>>)[k]);
+}
+
+function freezeLedger(ledger: Ledger): Ledger {
+  for (const e of ledger.entries) Object.freeze(e);
+  Object.freeze(ledger.entries);
+  for (const list of ledger.byTransaction.values()) Object.freeze(list);
+  Object.freeze(ledger.transferLinks);
+  Object.freeze(ledger.splitMismatches);
+  return Object.freeze(ledger);
+}
+
 export function buildLedger(data: LedgerData): Ledger {
+  const inputs = ledgerInputs(data);
+  const memoizable = inputs.every((a) => a === undefined || Object.isFrozen(a));
+  if (memoizable) {
+    const hit = ledgerMemo.get(data.transactions);
+    if (hit && hit.inputs.every((a, i) => a === inputs[i])) return hit.ledger;
+  }
+  const ledger = computeLedger(data);
+  if (!memoizable) return ledger;
+  ledgerMemo.set(data.transactions, { inputs, ledger: freezeLedger(ledger) });
+  return ledger;
+}
+
+function computeLedger(data: LedgerData): Ledger {
   const accounts = new Map(data.accounts.map((a) => [a.id, a]));
   const live = data.transactions.filter((t) => !t.removed);
   const txById = new Map(live.map((t) => [t.id, t]));

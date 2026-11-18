@@ -42,8 +42,9 @@ function publicColumns(key: DataKey): Record<string, unknown> {
  * token BEFORE the rows: a write in between only makes the cache newer than its
  * token, which costs one extra re-read later, never a stale answer.
  *
- * Cached rows are frozen (core functions must not mutate their input) and each
- * caller gets its own array, so sorting in place stays safe.
+ * Cached rows and arrays are frozen (core functions must not mutate their input;
+ * an in-place sort throws) and every caller gets the SAME arrays while the data
+ * is unchanged, which lets core memoize work on them (buildLedger).
  */
 const cache = new Map<DataKey, { token: string; rows: readonly object[] }>();
 const inflight = new Map<string, Promise<readonly object[]>>();
@@ -98,7 +99,7 @@ export async function loadSlices<K extends DataKey>(db: Db, keys: readonly K[]):
   const unique = [...new Set(keys)];
   const tokens = await sliceTokens(db, unique);
   const rows = await Promise.all(unique.map((k) => loadSlice(db, k, tokens.get(k))));
-  return Object.fromEntries(unique.map((k, i) => [k, rows[i]!.slice()])) as unknown as Pick<CoreData, K>;
+  return Object.fromEntries(unique.map((k, i) => [k, rows[i]])) as unknown as Pick<CoreData, K>;
 }
 
 function keyCondition(key: DataKey, values: Record<string, unknown>): SQL {

@@ -118,6 +118,6 @@ export async function actionLog(token: string, limit = 30): Promise<ActionLogEnt
   return (await call<{ actions: ActionLogEntry[] }>(`/actions?limit=${limit}`, token)).actions;
 }
 
-export function undoLogged(token: string, logId: string): Promise<{ undone: string }> {
+export function undoLogged(token: string, logId: string): Promise<{ undone: string; changed?: string[] }> {
   return call(`/actions/${encodeURIComponent(logId)}/undo`, token, { method: "POST" });
 }
