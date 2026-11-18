@@ -557,3 +557,15 @@ button.spark__hit:focus-visible {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-3);
 }
+.tx-fix--column {
+  flex-direction: column;
+  align-items: stretch;
+}
+.tx-picker {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
