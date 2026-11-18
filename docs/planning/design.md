@@ -139,7 +139,8 @@ These rules decide what every chart and number counts. See [decisions.md](../../
 ## 7. AI layer
 
 ### Features
-- **Chart notes:** short AI explanations attached to anomalies ("Travel +$640: flights + 2 hotel nights in Denver").
+- **On demand only:** the AI never generates anything without the user asking. Nothing runs automatically on sync or page load. Anomaly callouts (§3) are rule-based. See decisions.md entry 006.
+- **Chart notes (on request):** short AI explanations of an anomaly, generated when the user clicks on it ("Travel +$640: flights + 2 hotel nights in Denver").
 - **"Explain this":** available on every chart; the model answers using its data tools against the same query the chart uses.
 - **Coaching:** connects budgets to goals ("Cutting dining to your 3-month average gets the MacBook 5 weeks sooner").
 - Built on the harness approach from `ideas.md`: rich data-access tools plus well-defined prompts for common financial questions.
@@ -156,7 +157,7 @@ These rules decide what every chart and number counts. See [decisions.md](../../
 - The model sees **only what tools return.** No bulk data dumps; mostly aggregates, with individual transactions (merchant, amount, date, category) only when a question needs them.
 - **Never sent:** account numbers, Plaid access tokens, names or addresses. Accounts are referred to by nickname and last 4 digits ("Chase Checking ••1234").
 - **"What was sent" view** per conversation.
-- To do: review Anthropic's current API data-retention terms.
+- AI provider is the Gemini API (decisions.md entry 003). On the free tier, Google may use prompts and responses to improve its products, so these rules are the main protection. To do: review Gemini's current data-use terms.
 
 ---
 

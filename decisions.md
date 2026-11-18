@@ -56,20 +56,41 @@ Newest at the bottom. Mark superseded entries rather than deleting them.
 
 ---
 
-## 003: Small backend for Plaid and AI
+## 003: Backend: Cloudflare Workers + D1, holding all data; Gemini for AI
 
 **Date:** 2026-11-17
-**Status:** Proposed (not yet built)
+**Status:** Accepted (not yet built)
 
-**Decision:** Add a small TypeScript backend, likely Cloudflare Workers + D1. The desktop app talks to it over HTTPS.
+**Decision:**
+- **All data lives in the backend.** A TypeScript backend on **Cloudflare Workers** with a **D1** (SQLite) database is the single source of truth for transactions, user edits (overrides, rules, splits, transfer/refund links), budgets, goals, and snapshots. The desktop app is a client and talks to it over HTTPS; it keeps no local copy of financial data.
+- **Free plan only.** The project should cost $0 to run. Workers' free plan covers it: about 100k requests/day, 5 GB of D1, cron triggers, and nothing to keep warm.
+- **AI uses the Gemini API** (free tier at low usage) instead of Claude, called from the backend with tool use (e.g. `spending_by_category`, `net_worth_series`), so the model computes from real data instead of doing arithmetic over raw dumps.
 
 **Why:**
-- **Secrets stay off the client.** The Plaid secret and the per-bank access tokens shouldn't live in the desktop app.
-- **Webhooks need a public URL.** Plaid announces new transactions via webhooks (`SYNC_UPDATES_AVAILABLE`).
-- **Snapshots for trajectories.** Plaid only gives *current* balances and holdings, so a scheduled job (cron) has to snapshot them daily for history.
-- **AI calls go server-side.** Claude API calls run on the backend with tool use (e.g. `spending_by_category`, `net_worth_series`), so the model computes from real data instead of doing arithmetic over raw dumps.
+- **Secrets stay off the client.** The Plaid secret, per-bank access tokens, and the Gemini key never live in the desktop app.
+- **Webhooks need a public URL that's always up.** Plaid announces new transactions via webhooks (`SYNC_UPDATES_AVAILABLE`).
+- **Snapshots for trajectories.** Plaid only gives *current* balances and holdings, so a daily cron job snapshots them, including when the laptop is off.
+- **One API for UI and agent.** With the data next to the API, the agent's tools are thin wrappers over the same endpoints the UI uses (see 006).
+- **Free, always on, no server to maintain.** Workers + D1 is the only option found that's all three.
 
-**Open questions:** Workers + D1 vs. a Node service on Fly.io or Railway; how the app authenticates to the backend (single-user, so probably a long-lived token stored in the Keychain).
+**Alternatives considered:**
+- **Data stored in the app (local SQLite), thin backend:** keeps data on the machine, but snapshots, webhooks, and the agent all need the data available server-side.
+- **Vercel Hobby + Neon/Turso:** workable for free, but it's free tiers from several providers stitched together.
+- **Supabase free:** projects pause after about a week of inactivity, which would silently drop webhooks and snapshots.
+- **Fly.io / Railway / Render:** no usable free tier (Render's free tier sleeps, and its free database expires).
+- **Oracle Always Free VM / self-hosting with Cloudflare Tunnel:** free, but means maintaining a server myself.
+- **Claude API:** pay-per-use with no ongoing free tier.
+
+**Trade-offs accepted:**
+- Financial data is stored with Cloudflare (encrypted at rest by Cloudflare).
+- **Free-plan limits:** 10 ms of CPU per request. Time waiting on Plaid or Gemini doesn't count, but heavy calculations or long agent loops may need batching or Durable Objects.
+- **Gemini free tier:** Google may use prompts and responses to improve its products, and it has rate limits. The privacy rules in 006 (tools return mostly aggregates; identifiers never sent) matter more because of this. Moving to the paid tier would end that data use if it becomes a concern.
+
+**Open questions:**
+- How the app authenticates to the backend: single user, so probably a long-lived token stored in the Keychain, with a way to revoke it.
+- Whether Plaid access tokens get an extra layer of encryption on top of D1's.
+- Backup and export of the D1 database.
+- Confirm current free-plan limits (Cloudflare, Gemini) before building; they change.
 
 ---
 
@@ -117,10 +138,11 @@ Newest at the bottom. Mark superseded entries rather than deleting them.
 
 **Decision:**
 - **AI parity with the UI:** the agent can analyze data and do anything the UI can, through the same backend API (via harness tools).
+- **AI only runs when asked.** The AI never generates anything on its own: no automatic chart notes, insights, or coaching on sync or page load. Every AI output comes from a user action (asking a question, clicking "Explain this"). Unusual-spending flags stay rule-based, not AI. *(Added 2026-11-17)*
 - *Proposed:* the agent asks for confirmation before any change, and every agent change is logged and can be undone.
 - *Proposed:* **privacy.** The model sees only what tools return (mostly aggregates; individual transactions only when needed). Account numbers, Plaid tokens, and personal identifiers are never sent. Each conversation has a "what was sent" view.
 - **Broken connections** prompt the user to reconnect via Plaid's update mode, which keeps transaction history. Show the last successful update from Plaid, with our own last-synced time as a fallback.
 
-**Why:** One API for both UI and agent keeps them from drifting apart. Confirmation matters because merchant names and descriptions are untrusted text that reaches the model. Sending only tool results keeps exposure minimal.
+**Why:** One API for both UI and agent keeps them from drifting apart. Confirmation matters because merchant names and descriptions are untrusted text that reaches the model. Sending only tool results keeps exposure minimal. Running AI only when asked keeps it from adding noise, and keeps usage within Gemini's free tier.
 
 **Details:** [docs/planning/design.md](docs/planning/design.md)
