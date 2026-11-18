@@ -17,6 +17,8 @@ export const listAccounts = defineQuery({
         const kind = accountKind(a);
         return {
           id: a.id,
+          /** The bank connection it belongs to (null for manual accounts): ties an account to its connection health (§4). */
+          itemId: a.itemId,
           name: displayName(a),
           bankName: a.name,
           nickname: a.nickname,

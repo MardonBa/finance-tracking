@@ -280,15 +280,18 @@ describe("daily cron (§4, §5)", () => {
     expect(await count("transactions")).toBe(2);
     expect((await rows<{ status: string }>("SELECT status FROM plaid_items WHERE id = ?", badId))[0]!.status).toBe("login_required");
     expect(snapshots.saved).toBe(4); // the broken bank never got accounts
-    const snaps = await rows<{ date: string; balance_cents: number; source: string }>("SELECT date, balance_cents, source FROM balance_snapshots ORDER BY balance_cents");
+    const snaps = await rows<{ date: string; balance_cents: number; source: string }>("SELECT date, balance_cents, source FROM balance_snapshots WHERE is_estimated = 0 ORDER BY balance_cents");
     expect(snaps.map((s) => s.balance_cents)).toEqual([-41025, -41025, 100050, 100050]);
     expect(new Set(snaps.map((s) => s.date))).toEqual(new Set([today]));
     expect(new Set(snaps.map((s) => s.source))).toEqual(new Set(["plaid"]));
     void good;
 
     // Running again the same day upserts (no duplicates).
+    // (Estimated history rebuilt by afterDailySnapshots for the imported banks is separate.)
+    const estimated = await count("balance_snapshots", "is_estimated = 1");
     await runScheduled(env, Date.now());
-    expect(await count("balance_snapshots")).toBe(4);
+    expect(await count("balance_snapshots", "is_estimated = 0")).toBe(4);
+    expect(await count("balance_snapshots", "is_estimated = 1")).toBe(estimated);
   });
 
   it("marks a balance that wasn't refreshed as carried forward, never fresh", async () => {
