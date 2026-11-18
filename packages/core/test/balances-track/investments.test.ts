@@ -118,6 +118,15 @@ describe("§17 performance: contributions from transfers in minus out, not cost 
     expect(b.note).toMatch(/2026-09-01/);
   });
 
+  it("the query's transfers figure drills to the bank transactions, only when every contribution is one", async () => {
+    const { queryRegistry } = await import("../../src/queries/index.ts");
+    const q = queryRegistry.get("investments.performance")!;
+    const data = { accounts: [brk, ira, chk], holdings, investmentTransactions: itxs, transactions: txs, transferLinks: links };
+    const r = q.run(data as never, {}, TODAY);
+    // IRA: one linked bank transfer in. Brokerage: deposits are investment transactions (not in the Transactions window), so no figure.
+    expect(r.figures).toEqual({ "ira.transfers": { cents: 30_000, contributions: [{ transactionId: "ira_in", cents: 30_000 }], label: "Transfers into IRA since 2026-10-01" } });
+  });
+
   it("contribution items come from transfer activity and linked transfer halves only", () => {
     expect(contributionItems("brk", itxs, txs, links).map((c) => c.id)).toEqual(["old", "dep1", "wd1"]);
     expect(contributionItems("ira", itxs, txs, links).map((c) => c.id)).toEqual(["ira_in"]);

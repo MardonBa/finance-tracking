@@ -6,6 +6,7 @@
 import { useState } from "react";
 import type { Investments } from "@ft/core";
 import { useQuery } from "../../data/hooks.ts";
+import { openDrillDown } from "../../data/drilldown.ts";
 import { Chart } from "../../ui/Chart.tsx";
 import { OTHER_COLOR } from "../../ui/colorMap.ts";
 import { Card, SegmentedControl, StatNumber, Tabs } from "../../ui/components.tsx";
@@ -187,6 +188,7 @@ function PerformanceTab() {
   if (q.error && !q.data) return <p className="rti-error">Couldn't load performance: {q.error.message}</p>;
   if (!q.data) return <p className="rti-note">Loading…</p>;
   const { accounts, total } = q.data.value;
+  const figures = q.data.figures;
   if (accounts.length === 0) return NONE;
   return (
     <div className="rti-stack">
@@ -200,6 +202,7 @@ function PerformanceTab() {
           <tr>
             <th scope="col">Account</th>
             <th scope="col" className="is-num">Put in</th>
+            <th scope="col" className="is-num">Transfers in − out</th>
             <th scope="col" className="is-num">Value</th>
             <th scope="col" className="is-num">Gain / loss</th>
             <th scope="col">Measured from</th>
@@ -210,6 +213,20 @@ function PerformanceTab() {
             <tr key={p.accountId}>
               <th scope="row">{p.label}</th>
               <td className="is-num rti-num">{money(p.contributedCents)}</td>
+              <td className="is-num rti-num">
+                {figures[`${p.accountId}.transfers`] ? (
+                  <button
+                    type="button"
+                    className="rti-link"
+                    onClick={() => openDrillDown({ query: "investments.performance", params: {}, figureId: `${p.accountId}.transfers`, label: `Transfers into ${p.label}` })}
+                    aria-label={`${p.label} transfers in − out: ${money(p.netTransfersCents)}. Show transactions`}
+                  >
+                    {money(p.netTransfersCents, { showPlus: true })}
+                  </button>
+                ) : (
+                  money(p.netTransfersCents, { showPlus: true })
+                )}
+              </td>
               <td className="is-num rti-num">{money(p.valueCents)}</td>
               <td className={`is-num rti-num ${p.gainCents < 0 ? "rti-num--neg" : "rti-num--pos"}`}>{gainText(p)}</td>
               <td>{p.historyStartsOn ? longDate(p.historyStartsOn) : "–"}</td>
@@ -220,6 +237,7 @@ function PerformanceTab() {
           <tr>
             <th scope="row">Total</th>
             <td className="is-num rti-num">{money(total.contributedCents)}</td>
+            <td className="is-num rti-num">{money(total.netTransfersCents, { showPlus: true })}</td>
             <td className="is-num rti-num">{money(total.valueCents)}</td>
             <td className="is-num rti-num">{gainText(total)}</td>
             <td />
