@@ -112,6 +112,8 @@ export const PRIMARY_KEYS = {
   holdings: ["accountId", "securityId", "asOfDate"],
   investmentTransactions: ["id"],
   balanceSnapshots: ["accountId", "date"],
+  trajectoryAssumptions: ["id"],
+  lifePhases: ["id"],
 } as const satisfies { [K in DataKey]: readonly (keyof Row<K> & string)[] };
 
 export interface ActionContext {

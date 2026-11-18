@@ -387,6 +387,42 @@ export interface BalanceSnapshot {
   isCarriedForward: boolean;
 }
 
+// ---------------------------------------------------------------- trajectory assumptions (§12)
+
+/**
+ * The one editable set of base projection assumptions (a singleton row,
+ * id "default"). `assumptionsJson` holds a `TrajectoryBaseAssumptions`
+ * document validated by `trajectoryBaseAssumptionsSchema`
+ * (packages/core/src/trajectory/assumptions.ts).
+ */
+export interface TrajectoryAssumptionsRow {
+  id: Id;
+  assumptionsJson: string;
+  updatedAt: IsoDateTime;
+}
+
+/**
+ * A life phase: assumptions that apply to a range of calendar years
+ * (inclusive). Null fields fall back to the previous phase or the base
+ * assumptions. `contributionsJson` is a JSON array of
+ * `{ accountId, monthlyCents }` or null to keep the previous contributions.
+ */
+export interface LifePhase {
+  id: Id;
+  name: string;
+  fromYear: number;
+  toYear: number;
+  monthlyIncomeCents: Cents | null;
+  monthlySpendingCents: Cents | null;
+  /** Percent of income saved (0–100); when set, spending = income × (1 − rate). */
+  savingsRatePct: number | null;
+  investmentReturnPct: number | null;
+  hysaRatePct: number | null;
+  inflationPct: number | null;
+  contributionsJson: string | null;
+  updatedAt: IsoDateTime;
+}
+
 // ---------------------------------------------------------------- system
 
 export interface ActionLogEntry {
@@ -435,6 +471,8 @@ export interface CoreData {
   holdings: Holding[];
   investmentTransactions: InvestmentTransaction[];
   balanceSnapshots: BalanceSnapshot[];
+  trajectoryAssumptions: TrajectoryAssumptionsRow[];
+  lifePhases: LifePhase[];
 }
 
 export type DataKey = keyof CoreData;
@@ -469,6 +507,8 @@ export const DATA_KEYS = [
   "holdings",
   "investmentTransactions",
   "balanceSnapshots",
+  "trajectoryAssumptions",
+  "lifePhases",
 ] as const satisfies readonly DataKey[];
 
 /** An empty CoreData, handy for tests: `{ ...emptyData(), transactions: [...] }`. */
