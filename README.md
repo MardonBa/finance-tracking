@@ -1,27 +1,61 @@
 # Finance Tracker
 
-Personal macOS app that pulls in bank/investment data, charts trajectories, and uses AI for suggestions and analytics.
+Personal macOS app that pulls in bank and investment data (Plaid, read-only), shows where money goes and comes from, tracks budgets and goals, and answers questions with Gemini on demand.
 
-Stack: Tauri 2 + React + TypeScript (Vite). See [decisions.md](./decisions.md) for why.
+Stack: Tauri 2 + React + TypeScript desktop app, Cloudflare Workers + D1 backend (Hono, Drizzle), shared pure-TS core. See [decisions.md](./decisions.md) and [docs/planning](./docs/planning).
 
 ## Prerequisites
 
-- Node 20+
-- Rust (`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`)
+- Node 22+ and npm 11+
+- Rust (`~/.cargo/bin` does not need to be on PATH; the scripts add it)
 - Xcode Command Line Tools
+- `wrangler login` (Cloudflare account) for deploys and creating resources
 
-## Run
+## First-time setup
 
-```sh
+```bash
 npm install
-npm run tauri dev     # native app window with hot reload
-npm run dev           # frontend only, in the browser at http://localhost:1420
-npm run tauri build   # produce a .app / .dmg
 ```
+
+```bash
+cp .env.example .env   # then fill in Plaid Sandbox, Google and Gemini values
+```
+
+```bash
+npm run gen:secrets    # creates TOKEN_ENC_KEY, BACKUP_ENC_KEY, APP_TOKEN_PEPPER, DEV_APP_TOKEN in .env
+```
+
+```bash
+npm run reset:dev      # local dev D1: migrate + deterministic seed + dev app credential
+```
+
+## Daily commands
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | One command for local dev: `wrangler dev --env dev` (local D1/R2, auto-reloads on backend edits) and `tauri dev` (Vite hot reload for the frontend). Writes `apps/api/.dev.vars` from `.env` first. |
+| `npm test` | All Vitest suites (core, API in Node and in the Workers runtime against local D1, desktop) then `cargo test`. Must pass before shipping. |
+| `npm run typecheck` | `tsc` for every workspace (includes the schema ↔ core and Plaid schema ↔ SDK type checks). |
+| `npm run reset:dev` | Drop and re-migrate the local dev D1, load the deterministic seed. `-- --today YYYY-MM-DD` pins the seed date; `-- --sandbox` also creates Plaid Sandbox items from `apps/api/seed/custom-users`. |
+| `npm run sync:dev-vars` | Rewrite `apps/api/.dev.vars` and `apps/desktop/.env.development.local` from `.env` (`-- --deployed` also pushes the secrets to the deployed dev Worker). |
+| `npm run db:generate -w @ft/api` | After editing `apps/api/src/db/schema.ts`: generate the next SQL migration. |
+
+Shipping (deploy the Worker, build the `.app`): [docs/shipping.md](./docs/shipping.md).
 
 ## Layout
 
 ```
-src/          React frontend
-src-tauri/    Rust shell (window, native APIs, Keychain later)
+apps/desktop/        Tauri app: src/ (React), src-tauri/ (Rust), src/ui/tokens.css (design tokens), src/api/client.ts
+apps/api/            Cloudflare Worker: src/index.ts (Hono app), src/db (schema, migrations bridge), src/plaid, seed/, migrations/
+packages/core/       @ft/core: money (toCents, Money), dates, domain types, query/action registries, fixtures
+scripts/             gen-secrets, sync-dev-vars, reset-dev
 ```
+
+## Rules that keep the numbers right
+
+- Money is integer cents everywhere. `toCents()` in `@ft/core` is the only decimal → cents conversion.
+- `packages/core/src` is pure: no clock, network or randomness (a test walks the AST). "Today" and ids are passed in.
+- Every query returns `figures` (provenance: the transactions behind each number); every action returns row mutations and gets an inverse for undo.
+- Add queries/actions in `packages/core/src/{queries,actions}/<module>/` and that module's `index.ts` only.
+- The Plaid client can only call the read-only allowlist in `apps/api/src/plaid/endpoints.ts`.
+- Every D1 column has a comment giving the reason it is stored.

@@ -6,6 +6,7 @@
  * page). Everything else requires a bearer app token (auth.ts).
  */
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { ZodError } from "zod";
 import { ActionError } from "@ft/core";
 import { assertConfigured, type AppEnv, type HonoEnv } from "./env.ts";
@@ -23,7 +24,11 @@ app.use("*", async (c, next) => {
   return next();
 });
 
-app.get("/health", (c) => c.json({ ok: true, env: c.env.ENVIRONMENT }));
+/** The desktop webview: Vite in dev, Tauri's own scheme in the built app. */
+export const ALLOWED_ORIGINS = ["http://localhost:1420", "tauri://localhost", "http://tauri.localhost"];
+app.use("*", cors({ origin: ALLOWED_ORIGINS, allowHeaders: ["authorization", "content-type"], allowMethods: ["GET", "POST", "OPTIONS"], maxAge: 600 }));
+
+app.get("/health", (c) => c.json({ ok: true, env: c.env.ENVIRONMENT}));
 
 // Placeholders for the backend track (Phase 1). Public by design; they must
 // verify their own inputs (Plaid webhook signature) before acting.

@@ -77,3 +77,17 @@ describe("authentication on every route (§2)", () => {
     }
   });
 });
+
+describe("CORS", () => {
+  it("answers the desktop app's preflight without a credential and refuses other origins", async () => {
+    const ok = await request("/q/example.sumTransactions", {
+      method: "OPTIONS",
+      token: null,
+      headers: { origin: "http://localhost:1420", "access-control-request-method": "POST" },
+    });
+    expect(ok.status).toBe(204);
+    expect(ok.headers.get("access-control-allow-origin")).toBe("http://localhost:1420");
+    const other = await request("/health", { token: null, headers: { origin: "https://evil.example" } });
+    expect(other.headers.get("access-control-allow-origin")).toBeNull();
+  });
+});
