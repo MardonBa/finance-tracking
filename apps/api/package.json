@@ -8,7 +8,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply DB --local --env dev",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
-    "test": "vitest run -c vitest.node.config.ts && vitest run -c vitest.workers.config.ts"
+    "test": "vitest run -c vitest.node.config.ts && vitest run -c vitest.workers.config.ts",
+    "deploy:dev": "npm test --prefix ../.. && wrangler d1 migrations apply DB --remote --env dev && wrangler deploy --env dev --var PUBLIC_API_URL:https://ft-api-dev.ft-api.workers.dev"
   },
   "dependencies": {
     "@ft/core": "*",
