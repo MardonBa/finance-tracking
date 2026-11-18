@@ -1,4 +1,5 @@
 import type { AnyAction } from "../../registry.ts";
+import { accountActions } from "./accountActions.ts";
 
 /** Actions of the "accounts" module. Every name must start with "accounts.". Add files in this folder and list them here. */
-export const actions: AnyAction[] = [];
+export const actions: AnyAction[] = [...accountActions];
