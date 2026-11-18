@@ -1,20 +1,36 @@
 # Shipping
 
-Manual routine (no CI/CD yet, §1). A finished change can be in daily use the same day: test, migrate, deploy the Worker, build the app.
+Manual routine (no CI/CD yet, §1). A finished change can be in daily use the same day: test, migrate, deploy the Worker, build the app. Three commands:
+
+```bash
+npm run ship:api:dev
+```
+
+```bash
+npm run ship:api:prod
+```
+
+```bash
+VITE_API_URL=https://ft-api.<your-subdomain>.workers.dev npm run ship:app
+```
+
+Each one runs `npm run ship:check` (typecheck + every test) first and stops if anything fails. `apps/api/test/node/shipping.test.ts` fails if a `ship:*` script stops doing that.
 
 ## 0. Tests gate everything
 
 ```bash
-npm run typecheck && npm test
+npm run ship:check
 ```
 
-`npm test` runs every Vitest suite (core math and purity, registry invariants, API routes and auth in the Workers runtime against a local D1 with the real migrations, schema rules, Plaid allowlist/schemas/trimming against saved Sandbox fixtures) and `cargo test`. **If anything fails, do not ship.** There is no override.
+That's `npm run typecheck && npm test`. `npm test` runs every Vitest suite (core math and purity, registry invariants, API routes and auth in the Workers runtime against a local D1 with the real migrations, schema rules, Plaid allowlist/schemas/trimming against saved Sandbox fixtures) and `cargo test`. **If anything fails, do not ship.** There is no override.
 
 ## 1. Backend (Cloudflare Worker)
 
 Always name the environment. Dev and production have separate D1 databases, R2 buckets and secrets (`apps/api/wrangler.toml`).
 
 ### Dev Worker (Plaid Sandbox)
+
+`npm run ship:api:dev` does, after the tests:
 
 ```bash
 cd apps/api && npx wrangler d1 migrations apply DB --remote --env dev
@@ -48,7 +64,7 @@ Set each production secret by hand (values are typed at the prompt, never stored
 cd apps/api && npx wrangler secret put PLAID_SECRET --env production
 ```
 
-Each release:
+Each release, `npm run ship:api:prod` does, after the tests:
 
 ```bash
 cd apps/api && npx wrangler d1 migrations apply DB --remote --env production
@@ -62,17 +78,17 @@ Migrations are forward-only and applied before the deploy so the new code never 
 
 ## 2. Desktop app
 
-Point the build at the production Worker URL, then build:
+Point the build at the production Worker URL; `npm run ship:app` runs the tests, refuses to build without `VITE_API_URL`, then builds:
 
 ```bash
-cd apps/desktop && VITE_API_URL=https://ft-api.<your-subdomain>.workers.dev npm run tauri build
+VITE_API_URL=https://ft-api.<your-subdomain>.workers.dev npm run ship:app
 ```
 
 The `.app` is in `apps/desktop/src-tauri/target/release/bundle/macos/`. Copy it to `/Applications` (replace the old one). `VITE_DEV_APP_TOKEN` is only read in dev builds; production builds sign in with Google.
 
 ## Checklist
 
-1. `npm run typecheck && npm test` pass.
-2. New migration? Applied to dev, then production.
-3. Worker deployed to dev, smoke-checked (`/health`), then production.
-4. `.app` built against the production URL and installed.
+1. `npm run ship:check` passes (the ship scripts run it for you).
+2. `npm run ship:api:dev` (migrations + deploy), smoke-check `/health`.
+3. `npm run ship:api:prod`.
+4. `npm run ship:app` against the production URL, then install the `.app`.
