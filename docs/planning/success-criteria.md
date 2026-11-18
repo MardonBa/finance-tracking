@@ -3,7 +3,7 @@
 **Status:** Complete (all 17 areas defined; each lists what's still open)
 **Last updated:** 2026-11-18
 **Related:** [decisions.md](../../decisions.md), [design.md](./design.md)
-**Build status (2026-11-18):** 183 of 238 boxes ticked with automated evidence ([criteria-verification.md](./criteria-verification.md)). The other 55 need a hands-on check on the [manual checklist](./manual-checklist.md) (real Touch ID, browser sign-in, real banks, production) and get ticked once you've confirmed them.
+**Build status (2026-11-18):** 194 of 238 boxes ticked with automated evidence or your own checks ([criteria-verification.md](./criteria-verification.md)). The other 44 need a hands-on check on the [manual checklist](./manual-checklist.md) (real Touch ID, browser sign-in, real banks, production) and get ticked once you've confirmed them.
 
 What "done" and "working well" look like for every part of the app that needs building. [design.md](./design.md) describes *what* each part is; this doc defines how we'll know it's finished. Each section is written from an interview answer, then turned into checkable outcomes.
 
@@ -74,12 +74,12 @@ Every area below should serve at least one of these four outcomes.
 **Done when:**
 
 *Only I can get in*
-- [ ] My identity is my **Google account**: signing in with Google (§3) is how the app gets its credential, and the backend accepts **only my Google account**. Any other Google account is refused and nothing is created for it.
-- [ ] Opening the app requires **Touch ID**, with the macOS password as fallback. No data loads before that succeeds. (Touch ID is built with a small amount of custom Rust using Apple's LocalAuthentication framework.)
+- [x] My identity is my **Google account**: signing in with Google (§3) is how the app gets its credential, and the backend accepts **only my Google account**. Any other Google account is refused and nothing is created for it.
+- [x] Opening the app requires **Touch ID**, with the macOS password as fallback. No data loads before that succeeds. (Touch ID is built with a small amount of custom Rust using Apple's LocalAuthentication framework.)
 - [ ] After the app has been open for **72 hours** it locks and requires Touch ID again (default; adjustable later).
-- [ ] The app's credential for the backend is stored in the macOS **Keychain** and can only be read after Touch ID succeeds. If it's revoked or expires, the app asks me to sign in with Google again.
+- [x] The app's credential for the backend is stored in the macOS **Keychain** and can only be read after Touch ID succeeds. If it's revoked or expires, the app asks me to sign in with Google again.
 - [x] Every backend request without a valid credential is rejected, with no data in the error. Tested for every endpoint.
-- [ ] I can revoke the app's credential, e.g. if the laptop is lost, and a revoked credential stops working immediately.
+- [x] I can revoke the app's credential, e.g. if the laptop is lost, and a revoked credential stops working immediately.
 - [ ] Plaid webhooks are verified (Plaid's signed webhook check) before the backend acts on them.
 
 *No money can move*
@@ -118,8 +118,8 @@ Every area below should serve at least one of these four outcomes.
 **Done when:**
 
 *First run*
-- [ ] **Step 1: sign in with Google.** It opens in the system browser (standard OAuth with PKCE) and returns to the app. Only my Google account is accepted (§2).
-- [ ] **Step 2: set up Touch ID.** From then on, opening the app uses Touch ID instead of Google (§2).
+- [x] **Step 1: sign in with Google.** It opens in the system browser (standard OAuth with PKCE) and returns to the app. Only my Google account is accepted (§2).
+- [x] **Step 2: set up Touch ID.** From then on, opening the app uses Touch ID instead of Google (§2).
 - [ ] **Step 3: add banks.** The app prompts me to add a bank and opens Plaid Link, where I search for my bank and sign in.
 - [ ] Banks that sign in through their own website (e.g. **Chase OAuth**) work: I go to the bank's site and land back in the app with the connection finished.
 - [ ] **How Chase gets back to the app:** Plaid Link runs in my **system browser**, not inside the app window, using Plaid's Hosted Link. The backend creates the Link session; the browser handles the bank's sign-in and redirects; at the end, Plaid redirects to the app's own link (`financetracker://…`, registered with Tauri's deep-link plugin), which brings the app forward. The backend collects the result from Plaid directly (Link's completion webhook or a session lookup) and exchanges it for the access token, so nothing sensitive passes through the redirect. This is the same browser-and-return pattern as Google sign-in.
@@ -127,7 +127,7 @@ Every area below should serve at least one of these four outcomes.
 - [ ] Proven with a Sandbox spike (including Sandbox's OAuth test bank) before the rest of the connection flow is built.
 - [x] Each connection asks Plaid for the **maximum transaction history (up to 24 months)**. This has to be set when connecting; Plaid's default is only 90 days and can't be extended afterwards (§5 depends on it).
 - [ ] After each bank, I see the accounts that were found and can **add another bank** or **finish**. There's no limit beyond Plaid's.
-- [ ] I can finish with zero banks and add them later; the app still opens normally.
+- [x] I can finish with zero banks and add them later; the app still opens normally.
 
 *After connecting*
 - [x] For each new account I can rename it, hide it, and fix its type (checking, savings, credit, investment) if Plaid got it wrong.
@@ -503,7 +503,7 @@ Every area below should serve at least one of these four outcomes.
 *Basic desktop*
 - [x] Each area (Overview, Spending, Budgets, Goals, Recurring, Trajectory, Investments, Transactions, AI Assistant) opens as a **window** with a title bar and minimise, maximise, and close buttons.
 - [x] A **dock** shows every area. Clicking an area opens it, or brings it to the front if it's already open; each area has at most one window.
-- [ ] Windows can be **dragged** by the title bar and **resized** from edges and corners.
+- [x] Windows can be **dragged** by the title bar and **resized** from edges and corners.
 - [x] Clicking a window brings it into **focus**: it comes to the front and is visibly highlighted, and other windows are visibly in the background.
 - [x] Minimised windows go to the dock and come back from it.
 - [x] Windows stay **inside the app window**; they can't be dragged outside it, and they always keep their title bar visible, including after the app window is resized.
@@ -514,7 +514,7 @@ Every area below should serve at least one of these four outcomes.
 
 *Delightful, not fiddly*
 - [x] Opening, minimising, and focusing windows have short, smooth animations (respecting "Reduce motion").
-- [ ] Dragging and resizing stay smooth even with charts inside the window.
+- [x] Dragging and resizing stay smooth even with charts inside the window.
 - [x] Keyboard shortcuts: open each area (e.g. ⌘1–⌘9), close the focused window (⌘W), switch between open windows.
 - [x] Controls use the shared raised/pressed style (§15).
 
@@ -544,14 +544,14 @@ Every area below should serve at least one of these four outcomes.
 
 *Colour*
 - [x] A palette built from **cream, white, blue, and shades of orange and pink**, defined once as named design tokens (e.g. `--surface-cream`, `--accent-blue`) and used everywhere; no one-off colours in components.
-- [ ] Cream is the main surface; white for raised cards and controls; blue for primary actions and focus; orange and pink for highlights, chart series, and warnings.
+- [x] Cream is the main surface; white for raised cards and controls; blue for primary actions and focus; orange and pink for highlights, chart series, and warnings.
 - [x] Each category and each goal keeps the **same colour everywhere** in the app. Where there are more categories than distinguishable colours, smaller ones share a neutral "Other" shade, in line with design.md's "small multiples over rainbow stacks".
 - [ ] Text and key chart elements meet accessible contrast (WCAG AA), checked with a contrast tool.
 - [x] Over / under / on-track status never relies on colour alone; there's always a label, icon, or number too.
 
 *Raised controls*
 - [x] Every interactive surface (buttons, toggles, tabs, draggable cards, dock items) uses one shared component set with the **raised look and a clear pressed state**: a hard offset shadow that collapses as the element moves down on press (`ideas.md`, design.md §9).
-- [ ] Hover, focus (keyboard), pressed, and disabled states exist for every control and look consistent.
+- [x] Hover, focus (keyboard), pressed, and disabled states exist for every control and look consistent.
 
 - [x] **Light only.** There is no dark mode.
 - [x] The palette starts from the pixel-waves background's colours so the windows sit naturally on it: cream surfaces (`#efe6d0`, `#f4ecd8`, `#faf5e8`), ocean-blue accent (`#1d4c9e`), and navy text (`#14233f`, `#33435f`, `#55627a`), with oranges and pinks added for highlights and charts.

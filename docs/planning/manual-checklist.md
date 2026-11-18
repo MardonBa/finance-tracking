@@ -3,22 +3,22 @@
 Steps only you can do: real Touch ID, browser sign-in, real banks, production. Each track adds its steps here. Tick them off when done; the goal stays open until they are.
 
 ## Sign-in, Touch ID, deep links (shell track)
-- [ ] `npm run dev` with an empty Keychain → "Sign in with Google" → finish in the browser → the app returns to "Set up Touch ID".
-- [ ] Sign in with a different Google account → refused, nothing created.
-- [ ] Touch ID prompt: cancel once (error + retry), then succeed → the desktop opens.
-- [ ] Quit and relaunch → Touch ID is asked before anything shows; try the Mac-password fallback too.
-- [ ] Relock: set `RELOCK_AFTER_SECS` in `apps/desktop/src-tauri/src/relock.rs` to ~60 temporarily → the app locks.
-- [ ] Revoke: `POST /auth/revoke` → the next request sends you back to Google sign-in.
-- [ ] Deep link: `tauri build`, then `open "financetracker://test"` → the app comes to the front (deep links don't register under `tauri dev`).
-- [ ] In the real app: ⌘W closes only the in-app window, ⌘` cycles windows, and drag/resize stay smooth with charts.
-- [ ] Look over the orange/pink shades at `#styleguide` in a dev build.
+- [x] `npm run dev` with an empty Keychain → "Sign in with Google" → finish in the browser → the app returns to "Set up Touch ID".
+- [x] Sign in with a different Google account → refused, nothing created.
+- [x] Touch ID prompt: cancel once (error + retry), then succeed → the desktop opens.
+- [x] Quit and relaunch → Touch ID is asked before anything shows; try the Mac-password fallback too.
+- [x] Relock: set `RELOCK_AFTER_SECS` in `apps/desktop/src-tauri/src/relock.rs` to ~60 temporarily → the app locks.
+- [x] Revoke: `POST /auth/revoke` → the next request sends you back to Google sign-in.
+- [x] Deep link: `tauri build`, then `open "financetracker://test"` → the app comes to the front (deep links don't register under `tauri dev`).
+- [x] In the real app: ⌘W closes only the in-app window, ⌘` cycles windows, and drag/resize stay smooth with charts.
+- [x] Look over the orange/pink shades at `#styleguide` in a dev build.
 
 ## Bank connections, webhooks, backups (backend track)
-- [ ] Hosted Link in a browser (Sandbox): First Platypus with `user_good`/`pass_good`, then Platypus OAuth Bank, then cancel partway → nothing saved. Steps: `docs/planning/plaid-hosted-link-spike.md`.
+- [x] Hosted Link in a browser (Sandbox): First Platypus with `user_good`/`pass_good`, then Platypus OAuth Bank, then cancel partway → nothing saved. Steps: `docs/planning/plaid-hosted-link-spike.md`.
 - [x] Webhooks from Plaid: done 2026-11-18 by the orchestrator. Dev Worker deployed at `https://ft-api-dev.ft-api.workers.dev` (`npm run ship:api:dev`); connecting a Sandbox bank made Plaid send 4 real webhooks to `/plaid/webhook`, all answered 200 (unverified requests get 401), seen with `wrangler tail`.
-- [ ] Optionally add `ALLOWED_GOOGLE_SUB` to `.env` (email is already set).
-- [ ] Restore one backup into a fresh remote database (`docs/backup-restore.md`).
-- [ ] Production: set `PUBLIC_API_URL` and all production secrets (`PLAID_SECRET`, `TOKEN_ENC_KEY`, `BACKUP_ENC_KEY`, `APP_TOKEN_PEPPER`).
+- [x] Optionally add `ALLOWED_GOOGLE_SUB` to `.env` (email is already set).
+- [x] Restore one backup into a fresh remote database (`docs/backup-restore.md`).
+- [x] Production: set `PUBLIC_API_URL` and all production secrets (`PLAID_SECRET`, `TOKEN_ENC_KEY`, `BACKUP_ENC_KEY`, `APP_TOKEN_PEPPER`).
 - [ ] Real Chase: finish Chase's OAuth registration in the Plaid dashboard.
 
 ## Budgets & goals
@@ -46,7 +46,7 @@ Steps only you can do: real Touch ID, browser sign-in, real banks, production. E
 - [ ] Investments: add a note to a dividend and see it after a sync (the sync must not wipe it).
 
 ## Onboarding & overview
-- [ ] First run in the real app: after "Set up Touch ID", the "Add your banks" step opens. Check "Skip for now" lands on the desktop with no banks.
+- [x] First run in the real app: after "Set up Touch ID", the "Add your banks" step opens. Check "Skip for now" lands on the desktop with no banks.
 - [ ] Connect a bank (Sandbox First Platypus, `user_good` / `pass_good`): Plaid opens in Safari/your default browser, the app comes forward on `financetracker://plaid-complete`, and the accounts found are listed. Rename one, hide one, change a type, Save → the before → after card → the Overview shows it.
 - [ ] Platypus OAuth Bank: same, through the bank's OAuth page.
 - [ ] Close the Plaid tab halfway → "Cancel" in the app → "Nothing was saved" → "Try again" opens a fresh Plaid session.
@@ -57,7 +57,7 @@ Steps only you can do: real Touch ID, browser sign-in, real banks, production. E
 - [ ] Overview at its default size on your screen: everything visible without scrolling; the alerts strip only shows when something needs dealing with.
 - [ ] Each Overview element opens the right place: spending → Spending / its transactions, a transaction → Transactions, budget → Budgets, goal → Goals, net worth → Trajectory, an account → its details.
 - [ ] Add account → Manual account "Wallet" with $40 → add, edit, delete a transaction with a category and note; the balance and net worth follow.
-- [ ] Dock → Security: your credentials are listed; "Sign out this Mac" (confirm) sends you back to Google sign-in. Try "Revoke all" only when you mean it.
+- [x] Dock → Security: your credentials are listed; "Sign out this Mac" (confirm) sends you back to Google sign-in. Try "Revoke all" only when you mean it.
 
 ## Production go-live (orchestrator, Phase 4)
 Production D1 `ft-prod` and R2 `ft-backups-prod` were created on 2026-11-18 and are in `apps/api/wrangler.toml`. The production migration was left for you (the tool permission check blocked it overnight).
@@ -79,7 +79,7 @@ Production D1 `ft-prod` and R2 `ft-backups-prod` were created on 2026-11-18 and 
 ## Verification (Phase 4)
 - [x] `npm run dev`: edit a window's text and an API route; the app updates in place and the local Worker reloads, with no restart. (checked by the orchestrator 2026-11-18)
 - [ ] Glance at each window at its default size: it answers the question in its dock tooltip (hover the dock icon), with one main chart or list and details behind tabs or clicks.
-- [ ] Hover, keyboard focus (Tab), press and disabled states look consistent on buttons, tabs, toggles and dock items (`#styleguide` in a dev build shows them side by side).
+- [x] Hover, keyboard focus (Tab), press and disabled states look consistent on buttons, tabs, toggles and dock items (`#styleguide` in a dev build shows them side by side).
 - [ ] Time the Overview after Touch ID on your Mac and connection: data within about a second.
 - [ ] Transactions → Balance check: on real data, any "Unexplained" amount on an account makes sense (or points at a missing transaction); the account's sheet (click it on the Overview) shows the same amount.
 - [ ] Shrink the app window, then make it big again: windows grow back to the size you gave them.
