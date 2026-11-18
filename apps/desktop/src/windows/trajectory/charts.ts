@@ -95,7 +95,7 @@ export function netWorthOption(chart: NetWorthChart, grain: Grain) {
         name: s.label,
         type: "line",
         stack: s.side === "asset" ? "assets" : "debts",
-        symbol: "none",
+        symbol: points.length < 3 ? "circle" : "none",
         connectNulls: false,
         lineStyle: { width: 1, color: seriesColor(i) },
         itemStyle: { color: seriesColor(i) },

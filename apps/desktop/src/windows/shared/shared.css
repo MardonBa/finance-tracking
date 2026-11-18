@@ -43,7 +43,14 @@
   gap: var(--space-5);
   align-items: flex-end;
 }
+/* Let charts shrink with the window (a canvas's pixel width must not hold its container open). */
+.rti-stack > *,
+.rti-scroll > * {
+  min-width: 0;
+}
 .rti-chart {
+  min-width: 0;
+  overflow: hidden;
   height: 260px;
   min-height: 200px;
 }
