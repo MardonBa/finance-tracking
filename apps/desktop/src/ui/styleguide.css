@@ -1,0 +1,104 @@
+.sg {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-5) var(--space-8);
+  background: var(--surface-cream);
+  min-height: 100vh;
+}
+.sg-header h1 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-xl);
+  color: var(--text-strong);
+}
+.sg-header p {
+  margin: 0 0 var(--space-6);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+.sg-section {
+  margin-bottom: var(--space-7);
+}
+.sg-section__title {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-lg);
+  color: var(--text-strong);
+  border-bottom: var(--border-width) solid var(--border-soft);
+  padding-bottom: var(--space-2);
+}
+.sg-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+.sg-row__label {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+.sg-row__items {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+.sg-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-3);
+}
+.sg-swatch {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  column-gap: var(--space-2);
+  align-items: center;
+  font-size: var(--text-xs);
+}
+.sg-swatch__chip {
+  grid-row: span 2;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: var(--border-width) solid var(--border);
+}
+.sg-swatch__meta {
+  color: var(--text-muted);
+}
+.sg-type {
+  display: grid;
+  gap: var(--space-4);
+}
+.sg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-5);
+  align-items: start;
+}
+.sg-stack {
+  display: grid;
+  gap: var(--space-3);
+}
+.sg-goal {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: var(--weight-medium);
+  color: var(--text-strong);
+}
+.sg-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+.sg-icons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--space-3);
+}
+.sg-icon {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-strong);
+}
