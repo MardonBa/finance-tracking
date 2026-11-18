@@ -25,7 +25,10 @@ impl Default for LockState {
 impl LockState {
     /// Starts locked.
     pub const fn new(period_secs: u64) -> Self {
-        Self { unlocked_at: None, period_secs }
+        Self {
+            unlocked_at: None,
+            period_secs,
+        }
     }
 
     pub fn unlock(&mut self, now: u64) {
