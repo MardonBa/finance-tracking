@@ -16,6 +16,7 @@ use std::sync::Mutex;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
+use tauri::menu::{Menu, PredefinedMenuItem, Submenu};
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_opener::OpenerExt;
@@ -130,6 +131,43 @@ fn forward_links(app: &AppHandle, urls: Vec<String>) {
     }
 }
 
+/// The app menu. Replaces Tauri's default macOS menu, whose "Close Window"
+/// (⌘W) and window-cycling (⌘`) items would act on the native window; the
+/// in-app window manager owns those shortcuts (§14). Edit keeps copy/paste
+/// working in text fields.
+fn app_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
+    let app_items = Submenu::with_items(
+        app,
+        "Finance Tracker",
+        true,
+        &[
+            &PredefinedMenuItem::about(app, None, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::hide(app, None)?,
+            &PredefinedMenuItem::hide_others(app, None)?,
+            &PredefinedMenuItem::show_all(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::quit(app, None)?,
+        ],
+    )?;
+    let edit = Submenu::with_items(
+        app,
+        "Edit",
+        true,
+        &[
+            &PredefinedMenuItem::undo(app, None)?,
+            &PredefinedMenuItem::redo(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::cut(app, None)?,
+            &PredefinedMenuItem::copy(app, None)?,
+            &PredefinedMenuItem::paste(app, None)?,
+            &PredefinedMenuItem::select_all(app, None)?,
+        ],
+    )?;
+    let view = Submenu::with_items(app, "View", true, &[&PredefinedMenuItem::fullscreen(app, None)?])?;
+    Menu::with_items(app, &[&app_items, &edit, &view])
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -138,6 +176,7 @@ pub fn run() {
         .manage(Session::default())
         .setup(|app| {
             let handle = app.handle().clone();
+            app.set_menu(app_menu(&handle)?)?;
             if let Ok(Some(urls)) = app.deep_link().get_current() {
                 forward_links(&handle, urls.into_iter().map(|u| u.to_string()).collect());
             }
