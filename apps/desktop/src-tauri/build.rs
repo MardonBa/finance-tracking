@@ -22,5 +22,8 @@ fn main() {
             println!("cargo:rustc-env={key}={v}");
         }
     }
+    // generate_context! bakes the icons in (dev sets the Dock icon from
+    // icon.icns) but doesn't tell Cargo, so a new icon wouldn't rebuild.
+    println!("cargo:rerun-if-changed={}", manifest.join("icons").display());
     tauri_build::build()
 }
