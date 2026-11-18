@@ -9,14 +9,17 @@
  */
 import { Hono } from "hono";
 import type { HonoEnv } from "../env.ts";
-import { GeminiError } from "./gemini.ts";
+import { ModelError } from "./claude.ts";
 import { RateLimited, runChat } from "./harness.ts";
 import { BUILT_IN_PROMPTS } from "./prompts.ts";
 
-export function rateLimitMessage(retryAt: string, scope: "minute" | "day", source: "ours" | "gemini"): string {
-  const who = source === "gemini" ? "Gemini's free-tier limit was reached" : "The assistant's free-tier budget is used up";
-  return `${who} for this ${scope}. It can be used again after ${retryAt}.`;
+export function rateLimitMessage(retryAt: string, scope: "minute" | "day", source: "ours" | "provider"): string {
+  const who = source === "provider" ? "The Claude API is rate-limiting the assistant" : `The assistant's request budget for this ${scope} is used up`;
+  return `${who}. It can be used again after ${retryAt}.`;
 }
+
+export const CREDITS_MESSAGE =
+  "The Claude API credit balance is used up, so the assistant can't answer. Add credits in the Claude Console (Billing), or wait for next month's plan credits. Everything else keeps working.";
 
 export const aiRoutes = new Hono<HonoEnv>()
   .get("/ai/prompts", (c) => c.json({ prompts: BUILT_IN_PROMPTS.map(({ id, label }) => ({ id, label })) }))
@@ -36,7 +39,11 @@ export const aiRoutes = new Hono<HonoEnv>()
         c.header("retry-after", String(retryAfterS));
         return c.json({ error: "rate_limited", source, scope, retryAt, message: rateLimitMessage(retryAt, scope, source) }, 429);
       }
-      if (e instanceof GeminiError) return c.json({ error: "ai_unavailable", message: e.message }, 502);
+      if (e instanceof ModelError) {
+        if (e.kind === "credits") return c.json({ error: "ai_credits", message: CREDITS_MESSAGE }, 503);
+        console.error(e.message);
+        return c.json({ error: "ai_unavailable", message: e.kind === "config" ? "The assistant isn't set up correctly (Claude API key or model)." : "The assistant is unavailable right now. Try again in a minute." }, 502);
+      }
       throw e;
     }
   });

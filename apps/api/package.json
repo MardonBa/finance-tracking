@@ -11,6 +11,7 @@
     "test": "vitest run -c vitest.node.config.ts && vitest run -c vitest.workers.config.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.10.0",
     "@ft/core": "*",
     "drizzle-orm": "^0.45.4",
     "hono": "^4.13.19",

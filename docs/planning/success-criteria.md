@@ -593,8 +593,8 @@ Every area below should serve at least one of these four outcomes.
 
 *Privacy and cost*
 - [ ] The assistant sees only what its tools return: mostly totals, individual transactions only when needed. Account numbers, Plaid tokens, and personal identifiers are never sent (decision 006).
-- [x] Each conversation has a **"what was sent"** view showing exactly what went to Gemini.
-- [ ] When Gemini's free-tier limit is hit, the assistant says so plainly and when it can be used again; nothing breaks.
+- [x] Each conversation has a **"what was sent"** view showing exactly what went to the model (Claude).
+- [ ] When the assistant's request limit (or the Claude API's) is hit, or the API credits run out, the assistant says so plainly and when it can be used again; nothing breaks.
 
 - [x] The assistant **can read my transaction notes** (§7), since they often explain what a transaction was.
 - [ ] **Conversations aren't saved.** A conversation (and its "what was sent" view) lasts until I close it or quit the app, and nothing from it is stored on the backend. The action log of approved changes is kept, since undo depends on it.

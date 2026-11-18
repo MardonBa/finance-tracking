@@ -18,7 +18,7 @@ export default defineConfig(async () => {
             PLAID_SECRET: "test-secret",
             GOOGLE_CLIENT_ID: "test-google-client",
             GOOGLE_CLIENT_SECRET: "test-google-secret",
-            GEMINI_API_KEY: "test-gemini-key",
+            ANTHROPIC_API_KEY: "test-anthropic-key",
             ALLOWED_GOOGLE_SUB: "1234567890",
             ALLOWED_GOOGLE_EMAIL: "me@example.com",
             DEV_APP_TOKEN: "dev_test_token_aaaaaaaaaaaaaaaaaaaaaaaa",

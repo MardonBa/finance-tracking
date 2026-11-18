@@ -157,7 +157,7 @@ These rules decide what every chart and number counts. See [decisions.md](../../
 - The model sees **only what tools return.** No bulk data dumps; mostly aggregates, with individual transactions (merchant, amount, date, category) only when a question needs them.
 - **Never sent:** account numbers, Plaid access tokens, names or addresses. Accounts are referred to by nickname and last 4 digits ("Chase Checking ••1234").
 - **"What was sent" view** per conversation.
-- AI provider is the Gemini API (decisions.md entry 003). On the free tier, Google may use prompts and responses to improve its products, so these rules are the main protection. To do: review Gemini's current data-use terms.
+- AI provider is the Claude API (decisions.md entry 003, addendum of 2026-11-18; it was the Gemini API before). These rules stay the main protection: send only what a question needs, and never identifiers.
 
 ---
 

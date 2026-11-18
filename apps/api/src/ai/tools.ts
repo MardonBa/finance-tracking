@@ -8,8 +8,8 @@
  *   the user approves in the app, which then calls /a/:name.
  */
 import { actionRegistry, queryRegistry, type AnyAction, type AnyQuery } from "@ft/core";
-import type { FunctionDeclaration } from "./gemini.ts";
-import { toGeminiParameters } from "./schema.ts";
+import type Anthropic from "@anthropic-ai/sdk";
+import { toInputSchema } from "./schema.ts";
 
 export const READ_PREFIX = "q__";
 export const WRITE_PREFIX = "propose__";
@@ -54,8 +54,8 @@ export function writeToolName(actionName: string): string {
 }
 
 export type Tool =
-  | { kind: "read"; name: string; query: AnyQuery; declaration: FunctionDeclaration }
-  | { kind: "write"; name: string; action: AnyAction; declaration: FunctionDeclaration };
+  | { kind: "read"; name: string; query: AnyQuery; declaration: Anthropic.Tool }
+  | { kind: "write"; name: string; action: AnyAction; declaration: Anthropic.Tool };
 
 function build(): Tool[] {
   const reads: Tool[] = queryRegistry.all.map((q) => ({
@@ -65,7 +65,7 @@ function build(): Tool[] {
     declaration: {
       name: readToolName(q.name),
       description: `Read (same data as the "${q.name}" chart): ${q.description}`,
-      parameters: toGeminiParameters(q.params),
+      input_schema: toInputSchema(q.params),
     },
   }));
   const writes: Tool[] = actionRegistry.all
@@ -77,7 +77,7 @@ function build(): Tool[] {
       declaration: {
         name: writeToolName(a.name),
         description: `PROPOSE a change (nothing is applied until the user approves it in the app): ${a.description}`,
-        parameters: toGeminiParameters(a.input),
+        input_schema: toInputSchema(a.input),
       },
     }));
   return [...reads, ...writes];
@@ -94,13 +94,7 @@ export function tools(): { tools: Tool[]; byName: Map<string, Tool> } {
   return cache;
 }
 
-/** Declarations for Gemini; a tool without parameters omits `parameters` (Gemini rejects an empty OBJECT). */
-export function declarations(): FunctionDeclaration[] {
-  return tools().tools.map((t) => {
-    const p = t.declaration.parameters;
-    if (p && p.type === "OBJECT" && Object.keys(p.properties ?? {}).length === 0) {
-      return { name: t.declaration.name, description: t.declaration.description };
-    }
-    return t.declaration;
-  });
+/** The tool definitions sent to Claude (same order every time, so the prompt cache hits). */
+export function declarations(): Anthropic.Tool[] {
+  return tools().tools.map((t) => t.declaration);
 }

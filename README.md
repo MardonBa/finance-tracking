@@ -1,6 +1,6 @@
 # Finance Tracker
 
-Personal macOS app that pulls in bank and investment data (Plaid, read-only), shows where money goes and comes from, tracks budgets and goals, and answers questions with Gemini on demand.
+Personal macOS app that pulls in bank and investment data (Plaid, read-only), shows where money goes and comes from, tracks budgets and goals, and answers questions with Claude on demand.
 
 Stack: Tauri 2 + React + TypeScript desktop app, Cloudflare Workers + D1 backend (Hono, Drizzle), shared pure-TS core. See [decisions.md](./decisions.md) and [docs/planning](./docs/planning).
 
@@ -18,7 +18,7 @@ npm install
 ```
 
 ```bash
-cp .env.example .env   # then fill in Plaid Sandbox, Google and Gemini values
+cp .env.example .env   # then fill in Plaid Sandbox, Google and Claude API values
 ```
 
 ```bash

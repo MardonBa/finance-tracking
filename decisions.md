@@ -93,8 +93,10 @@ Newest at the bottom. Mark superseded entries rather than deleting them.
 - **Backups:** data that can't be re-fetched from Plaid (my edits, budgets, goals, snapshots) is exported on a schedule, encrypted, to Cloudflare R2's free tier, alongside D1's point-in-time restore.
 - **Plaid Link** runs in the system browser via Hosted Link and returns to the app with a deep link, which also handles Chase's OAuth.
 
+**Addendum (2026-11-18): AI moves from Gemini to Claude.** *Supersedes "AI uses the Gemini API".* The assistant calls the **Claude API** (model `claude-haiku-5-5`, set by `AI_MODEL`) through the official Anthropic SDK, with the same tools, rules and privacy protections (006). Why: Gemini's free tier kept hitting its usage limits, and the Claude Max plan includes monthly Claude API credits ($100 on Max), so the assistant costs nothing extra in normal use. It also removes the free-tier caveat that prompts may be used to improve the provider's products. Trade-offs: usage is paid from credits (roughly a cent per question on Haiku), so the backend keeps its own per-minute and per-day request budget as a cost guard, and when credits run out the assistant says so while the rest of the app keeps working.
+
 **Open questions:**
-- Confirm current free-plan limits (Cloudflare, Gemini) before building; they change.
+- Confirm current free-plan limits (Cloudflare) before building; they change.
 
 **Details:** [docs/planning/success-criteria.md](docs/planning/success-criteria.md) §2–§4
 

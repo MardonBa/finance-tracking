@@ -21,12 +21,13 @@ export interface AppEnv {
   PLAID_SECRET: string;
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
-  GEMINI_API_KEY: string;
-  /** Assistant model (wrangler.toml vars); default gemini-2.5-flash. */
-  GEMINI_MODEL?: string;
-  /** Used when the main model hits its quota; default gemini-2.5-flash-lite. */
-  GEMINI_FALLBACK_MODEL?: string;
-  /** Our own Gemini request budget (ai/rateLimit.ts); defaults match the free tier. */
+  /** Claude API key for the assistant (decision 006 addendum). */
+  ANTHROPIC_API_KEY: string;
+  /** Assistant model (wrangler.toml vars); default claude-haiku-5-5. */
+  AI_MODEL?: string;
+  /** Assistant effort: low | medium | high (default: the model's own default). */
+  AI_EFFORT?: string;
+  /** Our own request budget (ai/rateLimit.ts): a cost guard, not a provider limit. */
   AI_RPM_LIMIT?: string;
   AI_RPD_LIMIT?: string;
   /** Only this Google account may sign in (subject id preferred, email as fallback). */

@@ -1,7 +1,7 @@
 /**
  * What the model may see (§16 "Privacy and cost", decision 006).
  *
- * Every tool result passes through `forModel` before it is sent to Gemini:
+ * Every tool result passes through `forModel` before it is sent to the model (Claude):
  * - identifier fields are dropped (Plaid ids and tokens, bank account names,
  *   institution ids, emails, owner names, account/routing numbers);
  * - accounts are named only by nickname (or their kind) plus the last 4

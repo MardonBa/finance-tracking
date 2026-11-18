@@ -565,7 +565,7 @@ export const actionLog = sqliteTable(
 
 export const aiRateCounters = sqliteTable("ai_rate_counters", {
   bucket: text("bucket").primaryKey(), // window key, e.g. "rpm:2026-11-18T10:01" / "rpd:2026-11-18" / "cooldown" (§16 free-tier limits)
-  count: integer("count").notNull().default(0), // Gemini requests made in that window (§16)
+  count: integer("count").notNull().default(0), // assistant model requests made in that window (§16)
   resetAt: text("reset_at").notNull(), // when the window ends or the 429 retryDelay expires: "available again at …" (§16)
 });
 

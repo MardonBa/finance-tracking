@@ -9,9 +9,8 @@ import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { actionRegistry, queryRegistry } from "@ft/core";
 import { AI_EXCLUDED, MONEY_MOVING, READ_PREFIX, WRITE_PREFIX, declarations, excludedReason, tools } from "../../src/ai/tools.ts";
-import type { GeminiSchema } from "../../src/ai/schema.ts";
 import { BUILT_IN_PROMPTS } from "../../src/ai/prompts.ts";
-import { createGeminiRestClient, GeminiRateLimitError, parseRetryDelay, type GenerateRequest } from "../../src/ai/gemini.ts";
+import { createClaudeClient, ModelError, ModelRateLimitError, parseRetryAfter, type ModelRequest } from "../../src/ai/claude.ts";
 import { forModel, accountLabels } from "../../src/ai/privacy.ts";
 
 const { tools: all, byName } = tools();
@@ -32,27 +31,20 @@ describe("read tools = the query registry (§2 'The AI sees no more than the cha
       expect(t.name, t.name).not.toMatch(/export|dump|raw|sql|table|backup|bulk/i);
       if (t.kind === "write") expect(t.name.startsWith(WRITE_PREFIX)).toBe(true);
     }
-    // Gemini function-name rules.
-    for (const t of all) expect(t.name).toMatch(/^[a-zA-Z_][a-zA-Z0-9_.-]{0,63}$/);
+    // Claude tool-name rules.
+    for (const t of all) expect(t.name).toMatch(/^[a-zA-Z0-9_-]{1,64}$/);
     expect(new Set(all.map((t) => t.name)).size).toBe(all.length);
   });
 
-  it("declares parameters Gemini accepts: top-level OBJECT, no OBJECT without properties, string enums", () => {
-    const check = (s: GeminiSchema, path: string) => {
-      if (s.type === "OBJECT") {
-        expect(Object.keys(s.properties ?? {}).length, `${path} is an empty OBJECT`).toBeGreaterThan(0);
-        for (const [k, v] of Object.entries(s.properties!)) check(v, `${path}.${k}`);
-      }
-      if (s.items) check(s.items, `${path}[]`);
-      if (s.enum) for (const e of s.enum) expect(typeof e, path).toBe("string");
-    };
+  it("declares input schemas Claude accepts: a JSON Schema object at the top, with hints for dates and cents", () => {
     for (const d of declarations()) {
-      expect(d.description.length).toBeGreaterThan(10);
-      if (d.parameters) {
-        expect(d.parameters.type, d.name).toBe("OBJECT");
-        check(d.parameters, d.name);
-      }
+      expect(d.description!.length, d.name).toBeGreaterThan(10);
+      expect(d.input_schema.type, d.name).toBe("object");
+      expect(JSON.stringify(d.input_schema), d.name).not.toContain("$schema");
     }
+    const byCategory = declarations().find((d) => d.name === "q__spending__byCategory")!;
+    const props = byCategory.input_schema.properties as Record<string, { description?: string }>;
+    expect(props.from!.description).toContain("YYYY-MM-DD");
   });
 });
 
@@ -108,42 +100,44 @@ describe("built-in prompts", () => {
   });
 });
 
-describe("Gemini REST client (fake fetch, never the network)", () => {
-  const req: GenerateRequest = { systemInstruction: { parts: [{ text: "s" }] }, contents: [{ role: "user", parts: [{ text: "hi" }] }], tools: [] };
+describe("Claude client (fake fetch, never the network)", () => {
+  const req: ModelRequest = { model: "claude-haiku-5-5", max_tokens: 100, messages: [{ role: "user", content: "hi" }] };
+  const json = (body: unknown, status: number, headers: Record<string, string> = {}) =>
+    new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", ...headers } });
+  const errorBody = (type: string, message: string) => ({ type: "error", error: { type, message } });
 
-  it("posts to generateContent with the key in a header, not the URL or body", async () => {
+  it("posts to the Messages API with the key in a header, not the URL or body", async () => {
     let url = "";
     let init: RequestInit | undefined;
-    const client = createGeminiRestClient("k-123", (async (u: string, i: RequestInit) => {
-      url = u;
+    const client = createClaudeClient("k-123", (async (u: string | URL | Request, i?: RequestInit) => {
+      url = String(u);
       init = i;
-      return new Response(JSON.stringify({ candidates: [] }), { status: 200 });
+      return json({ id: "msg_1", type: "message", role: "assistant", model: "claude-haiku-5-5", content: [], stop_reason: "end_turn", stop_sequence: null, usage: { input_tokens: 1, output_tokens: 1 } }, 200);
     }) as unknown as typeof fetch);
-    await client.generate("gemini-2.5-flash", req);
-    expect(url).toBe("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent");
-    expect((init!.headers as Record<string, string>)["x-goog-api-key"]).toBe("k-123");
+    await client.create(req);
+    expect(url).toBe("https://api.anthropic.com/v1/messages");
+    // This SDK sends the API key as a bearer token.
+    expect(new Headers(init!.headers).get("authorization")).toBe("Bearer k-123");
     expect(url + String(init!.body)).not.toContain("k-123");
   });
 
-  it("parses a 429's RetryInfo.retryDelay and daily quota", async () => {
-    const body = {
-      error: {
-        code: 429,
-        message: "You exceeded your current quota",
-        status: "RESOURCE_EXHAUSTED",
-        details: [
-          { "@type": "type.googleapis.com/google.rpc.QuotaFailure", violations: [{ quotaId: "GenerateRequestsPerDayPerProjectPerModel-FreeTier" }] },
-          { "@type": "type.googleapis.com/google.rpc.RetryInfo", retryDelay: "37s" },
-        ],
-      },
-    };
-    const client = createGeminiRestClient("k", (async () => new Response(JSON.stringify(body), { status: 429 })) as unknown as typeof fetch);
-    const err = await client.generate("m", req).catch((e: unknown) => e);
-    expect(err).toBeInstanceOf(GeminiRateLimitError);
-    expect(err).toMatchObject({ retryAfterMs: 37_000, perDay: true });
-    expect(parseRetryDelay("1.5s")).toBe(1500);
-    expect(parseRetryDelay("250ms")).toBe(250);
-    expect(parseRetryDelay(undefined)).toBeNull();
+  it("maps a 429 to ModelRateLimitError with its retry-after", async () => {
+    const client = createClaudeClient("k", (async () => json(errorBody("rate_limit_error", "slow down"), 429, { "retry-after": "37" })) as unknown as typeof fetch);
+    const err = await client.create(req).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(ModelRateLimitError);
+    expect(err).toMatchObject({ retryAfterMs: 37_000 });
+    expect(parseRetryAfter("1.5")).toBe(1500);
+    expect(parseRetryAfter(undefined)).toBeNull();
+  });
+
+  it("maps an empty credit balance to a 'credits' error and a bad key to a 'config' error", async () => {
+    const credits = createClaudeClient("k", (async () =>
+      json(errorBody("invalid_request_error", "Your credit balance is too low to access the Anthropic API."), 400)) as unknown as typeof fetch);
+    expect(await credits.create(req).catch((e: unknown) => e)).toMatchObject({ kind: "credits" });
+    const badKey = createClaudeClient("k", (async () => json(errorBody("authentication_error", "invalid x-api-key"), 401)) as unknown as typeof fetch);
+    const err = await badKey.create(req).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(ModelError);
+    expect(err).toMatchObject({ kind: "config", status: 401 });
   });
 });
 
@@ -172,10 +166,10 @@ describe("the AI only runs when asked (decision 006)", () => {
         .sort();
     expect(importers(/from "\.\/harness\.ts"|ai\/harness/)).toEqual(["ai/route.ts"]);
     expect(importers(/ai\/route\.ts/)).toEqual(["index.ts"]);
-    expect(importers(/ai\/gemini\.ts|from "\.\/gemini\.ts"/).filter((f) => !f.startsWith("ai/"))).toEqual([]);
+    expect(importers(/ai\/claude\.ts|from "\.\/claude\.ts"|@anthropic-ai\/sdk/).filter((f) => !f.startsWith("ai/"))).toEqual([]);
     // Sync, webhooks, backups and the scheduled handler never reference the AI.
     for (const f of files(src).filter((f) => /\/(sync|backup|plaid|connections)\//.test(f))) {
-      expect(readFileSync(f, "utf8"), relative(src, f)).not.toMatch(/runChat|\/ai\/|gemini/i);
+      expect(readFileSync(f, "utf8"), relative(src, f)).not.toMatch(/runChat|\/ai\/|anthropic/i);
     }
     const index = readFileSync(join(src, "index.ts"), "utf8");
     const scheduledPart = index.slice(index.indexOf("export async function runScheduled"));

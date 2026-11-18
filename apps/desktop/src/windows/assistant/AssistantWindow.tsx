@@ -8,7 +8,7 @@
  *   the backend (which receives the whole conversation each turn and keeps none).
  * - Figures in answers link to their drill-down; proposals show before → after
  *   and are approved or rejected one by one (approve = POST /a/:name, logged).
- * - "What was sent" shows exactly what went to Gemini; "Action log" lists
+ * - "What was sent" shows exactly what went to Claude; "Action log" lists
  *   applied changes with Undo.
  */
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
@@ -31,6 +31,7 @@ import {
   type Citation,
   type ExplainRequest,
   type Proposal,
+  type SentMessage,
   type SentRecord,
 } from "./api.ts";
 import { Answer } from "./Answer.tsx";
@@ -135,11 +136,41 @@ function ProposalCard({ state, onApprove, onReject, onUndo }: { state: ProposalS
   );
 }
 
+/**
+ * One message as readable parts: your text, the model's text and tool calls, and tool results
+ * (named after the call they answer). Thinking isn't shown (it is empty). `names` maps tool-call
+ * ids to tool names across the conversation, since a result arrives in the message after its call.
+ */
+function sentParts(m: SentMessage, names: Map<string, string>): { role: string; text: string }[] {
+  if (typeof m.content === "string") return [{ role: m.role === "user" ? "you" : "model", text: m.content }];
+  const out: { role: string; text: string }[] = [];
+  for (const b of m.content) {
+    if (b.type === "text") out.push({ role: m.role === "user" ? "you" : "model", text: String(b.text) });
+    else if (b.type === "tool_use") {
+      names.set(String(b.id), String(b.name));
+      out.push({ role: "model called", text: `${String(b.name)}(${JSON.stringify(b.input ?? {}, null, 1)})` });
+    } else if (b.type === "tool_result") {
+      const raw = typeof b.content === "string" ? b.content : JSON.stringify(b.content);
+      let pretty = raw;
+      try {
+        pretty = JSON.stringify(JSON.parse(raw), null, 1);
+      } catch {
+        /* not JSON */
+      }
+      const name = names.get(String(b.tool_use_id));
+      out.push({ role: b.is_error ? "tool error" : "tool result", text: name ? `${name} → ${pretty}` : pretty });
+    }
+  }
+  return out;
+}
+
 function SentDrawer({ turns }: { turns: Turn[] }) {
   const withSent = turns.filter((t) => t.sent);
+  // Tool-call ids are unique, so one map serves every turn (filled in render order: calls before results).
+  const names = new Map<string, string>();
   return (
     <section className="as-panel" aria-label="What was sent">
-      <h3 className="as-panel__title">What was sent to Gemini</h3>
+      <h3 className="as-panel__title">What was sent to Claude</h3>
       <p className="as-muted">
         Exactly what this conversation sent: the instructions, your messages and every tool result. Each request also re-sends the earlier
         messages. Nothing here is saved.
@@ -165,19 +196,11 @@ function SentDrawer({ turns }: { turns: Turn[] }) {
               <h4>
                 Request {ri + 1} → {r.model}
               </h4>
-              {r.newContents.map((c, ci) =>
-                c.parts.map((p, pi) => (
-                  <div key={`${ci}-${pi}`} className="as-sent__part">
-                    <span className="as-sent__role">
-                      {p.functionCall ? "model called" : p.functionResponse ? "tool result" : c.role === "user" ? "you" : "model"}
-                    </span>
-                    <pre className="as-pre">
-                      {p.functionCall
-                        ? `${p.functionCall.name}(${JSON.stringify(p.functionCall.args ?? {}, null, 1)})`
-                        : p.functionResponse
-                          ? `${p.functionResponse.name} → ${JSON.stringify(p.functionResponse.response, null, 1)}`
-                          : p.text}
-                    </pre>
+              {r.newMessages.map((m, mi) =>
+                sentParts(m, names).map((p, pi) => (
+                  <div key={`${mi}-${pi}`} className="as-sent__part">
+                    <span className="as-sent__role">{p.role}</span>
+                    <pre className="as-pre">{p.text}</pre>
                   </div>
                 )),
               )}
@@ -430,7 +453,7 @@ export function AssistantWindow() {
 
       {limited && (
         <p className="as-limit" role="status">
-          <Icon name="info" size={14} /> The assistant has used up Gemini's free allowance for this {limited.scope}. You can ask again at{" "}
+          <Icon name="info" size={14} /> The assistant has reached its request limit for this {limited.scope}. You can ask again at{" "}
           <strong>{whenAvailable(limited.retryAt)}</strong>. Everything else in the app keeps working.
         </p>
       )}

@@ -28,18 +28,24 @@ export interface Proposal {
   preview: ActionPreview;
 }
 
-export interface Part {
-  text?: string;
-  functionCall?: { name: string; args?: Record<string, unknown> };
-  functionResponse?: { name: string; response: Record<string, unknown> };
-  thoughtSignature?: string;
+/** A content block of a Claude message, as the backend sent it (only the kinds the drawer shows). */
+export type SentBlock =
+  | { type: "text"; text: string }
+  | { type: "tool_use"; id: string; name: string; input: unknown }
+  | { type: "tool_result"; tool_use_id: string; content: unknown; is_error?: boolean }
+  | { type: "thinking" | "redacted_thinking"; [k: string]: unknown }
+  | { type: string; [k: string]: unknown };
+
+export interface SentMessage {
+  role: "user" | "assistant";
+  content: string | SentBlock[];
 }
 
 export interface SentRecord {
   systemPrompt: string;
   tools: { count: number; read: string[]; write: string[]; declarationChars: number };
-  generationConfig?: unknown;
-  requests: { model: string; newContents: { role: "user" | "model"; parts: Part[] }[]; toolConfig?: unknown }[];
+  settings?: { maxTokens: number; effort: string | null };
+  requests: { model: string; newMessages: SentMessage[]; toolChoice?: unknown }[];
 }
 
 export interface ChatResponse {
@@ -67,7 +73,7 @@ export interface ActionLogEntry {
   undoneAt: string | null;
 }
 
-/** The assistant is rate-limited (ours or Gemini's free tier) until `retryAt`. */
+/** The assistant is rate-limited (our own budget or the Claude API) until `retryAt`. */
 export class RateLimitedError extends Error {
   readonly retryAt: string;
   readonly scope: "minute" | "day";

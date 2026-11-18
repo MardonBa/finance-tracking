@@ -1,34 +1,32 @@
 /**
  * The assistant's turn (§16): the client sends the whole conversation (it is
- * never stored here), we run a short Gemini function-calling loop over the
- * registry tools, and return the answer, any proposals (NOT applied), the
- * figures it cited and exactly what was sent to Gemini.
+ * never stored here), we run a short Claude tool-use loop over the registry
+ * tools, and return the answer, any proposals (NOT applied), the figures it
+ * cited and exactly what was sent to Claude.
  */
 import { ZodError, z } from "zod";
 import { ActionError, queryRegistry, type ActionPreview, type Account } from "@ft/core";
 import type { AppEnv } from "../env.ts";
 import { getDb, loadSlices } from "../db/data.ts";
 import { NotFound, previewAction, runQuery, todayFor } from "../routes/registry.ts";
-import { GeminiError, GeminiRateLimitError, geminiClient, type Content, type FunctionCall, type GenerateRequest, type Part } from "./gemini.ts";
+import type Anthropic from "@anthropic-ai/sdk";
+import { ModelRateLimitError, modelClient, type ModelRequest, type ModelResponse } from "./claude.ts";
 import { accountLabels, forModel, scrubString, type AccountLabels } from "./privacy.ts";
 import { builtInPrompt, systemPrompt } from "./prompts.ts";
 import { checkBudget, cooldownFrom, cooldownUntil, limitsFor, recordRequest, setCooldown, type Blocked } from "./rateLimit.ts";
 import { declarations, readToolName, tools, type Tool } from "./tools.ts";
 import { linkUntaggedAmounts } from "./citations.ts";
 
-/** At most this many rounds of tool calls per turn (Worker CPU and free-tier requests). */
+/** At most this many rounds of tool calls per turn (cost and Worker time). */
 export const MAX_TOOL_ROUNDS = 6;
 /** Figures per tool result that get a citation tag. */
 const MAX_FIGURES_PER_RESULT = 60;
 
-/**
- * Code defaults; wrangler.toml sets GEMINI_MODEL / GEMINI_FALLBACK_MODEL.
- * TODO(revisit): in Nov 2026 Google returns 404 "no longer available to new users" for the
- * 2.5 models on this key, so wrangler.toml uses gemini-3.8-flash and gemini-3.5-flash-lite
- * (Google's suggested replacements). A 404 also falls through to the fallback model.
- */
-export const DEFAULT_MODEL = "gemini-2.5-flash";
-export const DEFAULT_FALLBACK_MODEL = "gemini-2.5-flash-lite";
+/** Code default; wrangler.toml sets AI_MODEL. Haiku: cheap, fast, good at picking tools. */
+export const DEFAULT_MODEL = "claude-haiku-5-5";
+/** Room for adaptive thinking plus the answer (non-streaming, so it stays well under SDK timeouts). */
+export const MAX_TOKENS = 16_000;
+const EFFORTS = ["low", "medium", "high"] as const;
 
 export const chatRequestSchema = z.object({
   messages: z
@@ -60,9 +58,9 @@ export interface Proposal {
 
 export interface SentRequest {
   model: string;
-  /** Contents added since the previous request (each request also re-sends everything before). */
-  newContents: Content[];
-  toolConfig: GenerateRequest["toolConfig"];
+  /** Messages added since the previous request (each request also re-sends everything before). */
+  newMessages: Anthropic.MessageParam[];
+  toolChoice: ModelRequest["tool_choice"];
 }
 
 export interface ChatResponse {
@@ -75,7 +73,7 @@ export interface ChatResponse {
   sent: {
     systemPrompt: string;
     tools: { count: number; read: string[]; write: string[]; declarationChars: number };
-    generationConfig: GenerateRequest["generationConfig"];
+    settings: { maxTokens: number; effort: string | null };
     requests: SentRequest[];
   };
   usage: { promptTokens: number; outputTokens: number };
@@ -105,7 +103,7 @@ interface TurnState {
   proposals: Proposal[];
 }
 
-/** Gemini can't declare free-form objects, so they arrive as JSON strings (schema.ts): decode them. */
+/** Models sometimes send a free-form object as a JSON string: decode those before validating. */
 export function decodeJsonStrings(v: unknown): unknown {
   if (typeof v === "string") {
     const t = v.trim();
@@ -133,9 +131,9 @@ function parseArgs<T>(schema: z.ZodType<T>, args: unknown): T {
   throw decoded.error;
 }
 
-async function runTool(state: TurnState, tool: Tool | undefined, call: FunctionCall): Promise<Record<string, unknown>> {
+async function runTool(state: TurnState, tool: Tool | undefined, call: Anthropic.ToolUseBlock): Promise<Record<string, unknown>> {
   if (!tool) return { error: `There is no tool named "${call.name}".` };
-  const args = call.args ?? {};
+  const args = call.input ?? {};
   try {
     if (tool.kind === "read") {
       const params = parseArgs(tool.query.params, args);
@@ -170,40 +168,22 @@ async function runTool(state: TurnState, tool: Tool | undefined, call: FunctionC
   }
 }
 
-/** One Gemini request with our budget, Google's 429s and the fallback model. */
-async function generate(env: AppEnv, request: GenerateRequest, nowMs: () => number) {
+/** One Claude request with our budget and the provider's 429 cooldown. */
+async function generate(env: AppEnv, request: ModelRequest, nowMs: () => number): Promise<ModelResponse> {
   const db = env.DB;
-  const primary = env.GEMINI_MODEL || DEFAULT_MODEL;
-  const fallback = env.GEMINI_FALLBACK_MODEL || DEFAULT_FALLBACK_MODEL;
-  const client = geminiClient(env.GEMINI_API_KEY);
-  const limits = limitsFor(env);
-  let lastBlock: Blocked | null = null;
-  let lastError: unknown = null;
-  for (const model of primary === fallback ? [primary] : [primary, fallback]) {
-    const cooled = await cooldownUntil(db, model, nowMs());
-    if (cooled) {
-      lastBlock = { source: "gemini", scope: "minute", retryAt: cooled };
-      continue;
-    }
-    const ours = await checkBudget(db, nowMs(), limits);
-    if (ours) throw new RateLimited(ours);
-    await recordRequest(db, nowMs());
-    try {
-      return { model, response: await client.generate(model, request) };
-    } catch (e) {
-      // A retired model ("no longer available", 404) also falls through to the fallback.
-      if (e instanceof GeminiError && e.status === 404) {
-        lastError = e;
-        continue;
-      }
-      if (!(e instanceof GeminiRateLimitError)) throw e;
-      const until = cooldownFrom(nowMs(), e.retryAfterMs, e.perDay);
-      await setCooldown(db, model, until);
-      lastBlock = { source: "gemini", scope: e.perDay ? "day" : "minute", retryAt: until };
-    }
+  const cooled = await cooldownUntil(db, request.model, nowMs());
+  if (cooled) throw new RateLimited({ source: "provider", scope: "minute", retryAt: cooled });
+  const ours = await checkBudget(db, nowMs(), limitsFor(env));
+  if (ours) throw new RateLimited(ours);
+  await recordRequest(db, nowMs());
+  try {
+    return await modelClient(env.ANTHROPIC_API_KEY).create(request);
+  } catch (e) {
+    if (!(e instanceof ModelRateLimitError)) throw e;
+    const until = cooldownFrom(nowMs(), e.retryAfterMs, false);
+    await setCooldown(db, request.model, until);
+    throw new RateLimited({ source: "provider", scope: "minute", retryAt: until });
   }
-  if (lastBlock) throw new RateLimited(lastBlock);
-  throw lastError ?? new GeminiError("No Gemini model available", 502);
 }
 
 /** Guidance for "Explain this": read the same query the chart used, then the transactions behind the figure. */
@@ -230,16 +210,16 @@ export async function runChat(env: AppEnv, rawRequest: unknown, nowMs: () => num
   const state: TurnState = { env, labels: accountLabels(accounts as Account[]), nextTag: req.firstTag, tags: new Map(), proposals: [] };
 
   const guidance = builtInPrompt(req.promptId)?.guidance ?? (req.explain ? explainGuidance(req.explain) : undefined);
-  const contents: Content[] = req.messages.map((m, i) => {
+  const messages: Anthropic.MessageParam[] = req.messages.map((m, i) => {
     const isLast = i === req.messages.length - 1;
     const text = isLast && guidance ? `${m.text}\n\n(How to answer this built-in question: ${guidance})` : m.text;
-    return { role: m.role === "assistant" ? "model" : "user", parts: [{ text }] };
+    return { role: m.role, content: text };
   });
 
   const system = systemPrompt(today);
   const decls = declarations();
-  // Default sampling: Gemini 3 models are tuned for the default temperature (lower values can loop).
-  const generationConfig = {};
+  const model = env.AI_MODEL || DEFAULT_MODEL;
+  const effort = (EFFORTS as readonly string[]).includes(env.AI_EFFORT ?? "") ? (env.AI_EFFORT as (typeof EFFORTS)[number]) : null;
   const sent: ChatResponse["sent"] = {
     systemPrompt: system,
     tools: {
@@ -248,59 +228,65 @@ export async function runChat(env: AppEnv, rawRequest: unknown, nowMs: () => num
       write: tools().tools.filter((t) => t.kind === "write").map((t) => t.name),
       declarationChars: JSON.stringify(decls).length,
     },
-    generationConfig,
+    settings: { maxTokens: MAX_TOKENS, effort },
     requests: [],
   };
   const usage = { promptTokens: 0, outputTokens: 0 };
   let sentUpTo = 0;
   let text = "";
-  let model = env.GEMINI_MODEL || DEFAULT_MODEL;
   let rounds = 0;
 
   for (let call = 0; call <= MAX_TOOL_ROUNDS; call++) {
     // The last allowed request may not call tools, so the model has to answer.
-    const toolConfig = { functionCallingConfig: { mode: call === MAX_TOOL_ROUNDS ? "NONE" : "AUTO" } } as const;
-    const request: GenerateRequest = {
-      systemInstruction: { parts: [{ text: system }] },
-      contents,
-      tools: [{ functionDeclarations: decls }],
-      toolConfig,
-      generationConfig,
+    const toolChoice: ModelRequest["tool_choice"] = call === MAX_TOOL_ROUNDS ? { type: "none" } : { type: "auto" };
+    const request: ModelRequest = {
+      model,
+      max_tokens: MAX_TOKENS,
+      // Tools + system prompt are the same every request: one cache breakpoint covers both,
+      // and the top-level breakpoint caches the growing conversation between tool rounds.
+      system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
+      cache_control: { type: "ephemeral" },
+      tools: decls,
+      tool_choice: toolChoice,
+      messages,
+      ...(effort ? { output_config: { effort } } : {}),
     };
-    sent.requests.push({ model: "", newContents: structuredClone(contents.slice(sentUpTo)), toolConfig });
-    sentUpTo = contents.length;
-    const result = await generate(env, request, nowMs);
-    model = result.model;
-    sent.requests[sent.requests.length - 1]!.model = model;
-    usage.promptTokens += result.response.usageMetadata?.promptTokenCount ?? 0;
-    usage.outputTokens += result.response.usageMetadata?.candidatesTokenCount ?? 0;
+    sent.requests.push({ model, newMessages: structuredClone(messages.slice(sentUpTo)), toolChoice });
+    sentUpTo = messages.length;
+    const response = await generate(env, request, nowMs);
+    sent.requests[sent.requests.length - 1]!.model = response.model || model;
+    usage.promptTokens += (response.usage?.input_tokens ?? 0) + (response.usage?.cache_read_input_tokens ?? 0) + (response.usage?.cache_creation_input_tokens ?? 0);
+    usage.outputTokens += response.usage?.output_tokens ?? 0;
 
-    const content = result.response.candidates?.[0]?.content;
-    const parts: Part[] = content?.parts ?? [];
-    const calls = parts.filter((p) => p.functionCall).map((p) => p.functionCall!);
-    if (calls.length === 0 || call === MAX_TOOL_ROUNDS) {
-      text = parts
-        .filter((p) => p.text && !p.thought)
-        .map((p) => p.text)
+    const toolUses = response.content.filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
+    if (toolUses.length === 0 || call === MAX_TOOL_ROUNDS || response.stop_reason !== "tool_use") {
+      text = response.content
+        .filter((b): b is Anthropic.TextBlock => b.type === "text")
+        .map((b) => b.text)
         .join("")
         .trim();
       if (!text) {
-        const reason = result.response.promptFeedback?.blockReason ?? result.response.candidates?.[0]?.finishReason;
-        text = reason ? `I couldn't answer that (${reason}). Try rephrasing the question.` : "I couldn't come up with an answer. Try rephrasing the question.";
+        text =
+          response.stop_reason === "refusal"
+            ? "I can't help with that one. Try asking it differently."
+            : response.stop_reason === "max_tokens"
+              ? "That answer ran too long. Try a narrower question."
+              : "I couldn't come up with an answer. Try rephrasing the question.";
       }
       break;
     }
     rounds++;
-    contents.push({ role: "model", parts });
+    // The assistant turn goes back exactly as received (thinking blocks included).
+    messages.push({ role: "assistant", content: response.content as Anthropic.ContentBlockParam[] });
     const byName = tools().byName;
-    const responses: Part[] = [];
-    for (const fc of calls) {
-      const response = await runTool(state, byName.get(fc.name), fc);
-      responses.push({ functionResponse: { name: fc.name, response } });
+    const results: Anthropic.ToolResultBlockParam[] = [];
+    for (const tu of toolUses) {
+      const result = await runTool(state, byName.get(tu.name), tu);
+      results.push({ type: "tool_result", tool_use_id: tu.id, content: JSON.stringify(result), ...("error" in result ? { is_error: true } : {}) });
     }
-    contents.push({ role: "user", parts: responses });
+    // All results of one round go back in a single user message.
+    messages.push({ role: "user", content: results });
   }
-
   text = linkUntaggedAmounts(text, state.tags);
   const cited: Record<string, Citation> = {};
   for (const m of text.matchAll(/\[([FC]\d+(?:\s*,\s*[FC]\d+)*)\]/g)) {
@@ -309,6 +295,6 @@ export async function runChat(env: AppEnv, rawRequest: unknown, nowMs: () => num
       if (c) cited[tag] = c;
     }
   }
-  return { text, proposals: state.proposals, citations: cited, nextTag: state.nextTag, rounds, model, sent, usage };
+  return { text, proposals: state.proposals, citations: cited, nextTag: state.nextTag, rounds, model: sent.requests.at(-1)?.model ?? model, sent, usage };
 }
 

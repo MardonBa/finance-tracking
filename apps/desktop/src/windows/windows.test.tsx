@@ -33,7 +33,7 @@ vi.mock("../api/client.ts", async () => {
   return { ...clientMock, apiRequest: other, call: other };
 });
 vi.mock("../ui/Chart.tsx", () => import("../test/chartStub.tsx"));
-// The assistant's own routes (never Gemini): two ready-made prompts, an empty log, and a chat that never answers.
+// The assistant's own routes (never Claude): two ready-made prompts, an empty log, and a chat that never answers.
 vi.mock("./assistant/api.ts", async (orig) => ({
   ...(await orig<typeof import("./assistant/api.ts")>()),
   builtInPrompts: async () => [

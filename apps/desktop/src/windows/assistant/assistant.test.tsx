@@ -3,7 +3,7 @@
  * Assistant window (§16): chips, figure links → drill-down, proposals
  * approved/rejected one by one, the "What was sent" drawer, the action log,
  * the rate-limit message, and "Explain this". The API is faked; nothing here
- * talks to the backend or Gemini.
+ * talks to the backend or Claude.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
@@ -45,18 +45,24 @@ function response(over: Partial<ChatResponse> = {}): ChatResponse {
     },
     nextTag: 4,
     rounds: 1,
-    model: "gemini-2.5-flash",
+    model: "claude-haiku-5-5",
     usage: { promptTokens: 100, outputTokens: 20 },
     sent: {
       systemPrompt: "You are the assistant inside a personal finance app. UNTRUSTED TEXT …",
       tools: { count: 2, read: ["q__spending__byCategory"], write: ["propose__budgets__editPart"], declarationChars: 500 },
       requests: [
-        { model: "gemini-2.5-flash", newContents: [{ role: "user", parts: [{ text: "What am I spending the most on this month?" }] }] },
+        { model: "claude-haiku-5-5", newMessages: [{ role: "user", content: "What am I spending the most on this month?" }] },
         {
-          model: "gemini-2.5-flash",
-          newContents: [
-            { role: "model", parts: [{ functionCall: { name: "q__spending__byCategory", args: { from: "2026-11-01" } } }] },
-            { role: "user", parts: [{ functionResponse: { name: "q__spending__byCategory", response: { value: { totalCents: 66250 } } } }] },
+          model: "claude-haiku-5-5",
+          newMessages: [
+            {
+              role: "assistant",
+              content: [
+                { type: "thinking", thinking: "", signature: "sig" },
+                { type: "tool_use", id: "toolu_1", name: "q__spending__byCategory", input: { from: "2026-11-01" } },
+              ],
+            },
+            { role: "user", content: [{ type: "tool_result", tool_use_id: "toolu_1", content: JSON.stringify({ value: { totalCents: 66250 } }) }] },
           ],
         },
       ],
@@ -190,7 +196,7 @@ describe("AssistantWindow", () => {
     expect(within(first).getByRole("button", { name: "Approve" })).toBeTruthy();
   });
 
-  it("the What was sent drawer shows exactly what went to Gemini", async () => {
+  it("the What was sent drawer shows exactly what went to Claude", async () => {
     await renderAssistant();
     fireEvent.click(screen.getByRole("button", { name: "What was sent" }));
     expect(screen.getByText(/Nothing yet/)).toBeTruthy();
@@ -210,7 +216,7 @@ describe("AssistantWindow", () => {
     await renderAssistant();
     fireEvent.click(screen.getByRole("button", { name: PROMPTS[1]!.label }));
     const msg = await screen.findByRole("status");
-    expect(msg.textContent).toMatch(/free allowance for this minute/);
+    expect(msg.textContent).toMatch(/request limit for this minute/);
     expect(msg.textContent).toContain(new Date(retryAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
     expect(msg.textContent).toMatch(/Everything else in the app keeps working/);
     // The question goes back in the box to try again later.

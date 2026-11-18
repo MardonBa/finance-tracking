@@ -58,7 +58,7 @@ cd apps/api && npx wrangler d1 create ft-prod
 cd apps/api && npx wrangler r2 bucket create ft-backups-prod
 ```
 
-Set each production secret by hand (values are typed at the prompt, never stored in the repo or `.env`): `PLAID_CLIENT_ID`, `PLAID_SECRET` (the production secret), `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GEMINI_API_KEY`, `ALLOWED_GOOGLE_SUB` (or `ALLOWED_GOOGLE_EMAIL`), and fresh `TOKEN_ENC_KEY`, `BACKUP_ENC_KEY`, `APP_TOKEN_PEPPER` (generate with `openssl rand -base64 32`; never reuse the dev ones):
+Set each production secret by hand (values are typed at the prompt, never stored in the repo or `.env`): `PLAID_CLIENT_ID`, `PLAID_SECRET` (the production secret), `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ANTHROPIC_API_KEY`, `ALLOWED_GOOGLE_SUB` (or `ALLOWED_GOOGLE_EMAIL`), and fresh `TOKEN_ENC_KEY`, `BACKUP_ENC_KEY`, `APP_TOKEN_PEPPER` (generate with `openssl rand -base64 32`; never reuse the dev ones):
 
 ```bash
 cd apps/api && npx wrangler secret put PLAID_SECRET --env production

@@ -30,14 +30,10 @@ USER_TIME_ZONE = "America/New_York"
 # only arrive on the deployed dev Worker.
 # Local dev keeps localhost; the deployed dev Worker gets https://ft-api-dev.ft-api.workers.dev via `npm run ship:api:dev`.
 PUBLIC_API_URL = "http://localhost:8787"
-# AI assistant (§16): model, fallback on quota errors, and our own request budget.
-# TODO(revisit): free-tier limits change; check AI Studio for this project's real RPM/RPD.
-# TODO(revisit): the spec'd gemini-2.5-flash / -flash-lite answer 404 "no longer available to
-# new users" for this key (Nov 2026); these are Google's suggested replacements.
-GEMINI_MODEL = "gemini-3.8-flash"
-GEMINI_FALLBACK_MODEL = "gemini-3.5-flash-lite"
-AI_RPM_LIMIT = "10"
-AI_RPD_LIMIT = "250"
+# AI assistant (§16, decision 006 addendum): Claude model and our own request budget (a cost guard).
+AI_MODEL = "claude-haiku-5-5"
+AI_RPM_LIMIT = "20"
+AI_RPD_LIMIT = "500"
 
 [[env.dev.d1_databases]]
 binding = "DB"
@@ -67,10 +63,9 @@ PLAID_ENV = "production"
 USER_TIME_ZONE = "America/New_York"
 # The production Worker URL (workers.dev subdomain "ft-api").
 PUBLIC_API_URL = "https://ft-api.ft-api.workers.dev"
-GEMINI_MODEL = "gemini-3.8-flash"
-GEMINI_FALLBACK_MODEL = "gemini-3.5-flash-lite"
-AI_RPM_LIMIT = "10"
-AI_RPD_LIMIT = "250"
+AI_MODEL = "claude-haiku-5-5"
+AI_RPM_LIMIT = "20"
+AI_RPD_LIMIT = "500"
 
 [[env.production.d1_databases]]
 binding = "DB"
