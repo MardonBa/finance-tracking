@@ -3,24 +3,28 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "tauri": "tauri"
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22"
   },
-  "dependencies": {
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-opener": "^2"
+  "scripts": {
+    "dev": "PATH=\"$HOME/.cargo/bin:$PATH\" concurrently --kill-others --names api,app --prefix-colors blue,magenta \"npm:dev:api\" \"npm:dev:app\"",
+    "dev:api": "node scripts/sync-dev-vars.mjs && npm run dev -w @ft/api",
+    "dev:app": "npm run tauri -w @ft/desktop -- dev",
+    "test": "npm run test:ts && npm run test:rust",
+    "test:ts": "npm run test --workspaces --if-present",
+    "test:rust": "cd apps/desktop/src-tauri && PATH=\"$HOME/.cargo/bin:$PATH\" cargo test",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "gen:secrets": "node scripts/gen-secrets.mjs",
+    "sync:dev-vars": "node scripts/sync-dev-vars.mjs",
+    "reset:dev": "node scripts/reset-dev.mjs"
   },
   "devDependencies": {
-    "@types/react": "^19.1.8",
-    "@types/react-dom": "^19.1.6",
-    "@vitejs/plugin-react": "^6.0.2",
+    "concurrently": "^10.0.7",
     "typescript": "~6.0.3",
-    "vite": "^8.0.16",
-    "@tauri-apps/cli": "^2"
+    "vitest": "^4.1.12"
   }
 }

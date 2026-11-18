@@ -1,0 +1,23 @@
+{
+  "name": "@ft/core",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Pure money math, domain types, zod schemas and the query/action registries shared by the desktop app, the API and the AI tools.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./fixtures": "./fixtures/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.test.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.3",
+    "vitest": "^4.1.12",
+    "@types/node": "^22"
+  }
+}

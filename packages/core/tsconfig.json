@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    // No Node or DOM globals in core: it must run unchanged in the Worker and the webview.
+    "types": []
+  },
+  "include": ["src", "fixtures"]
+}
