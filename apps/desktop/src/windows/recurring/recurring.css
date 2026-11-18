@@ -1,0 +1,63 @@
+/* Recurring window: the month calendar grid. Tokens only. */
+.rec-cal__month {
+  margin: 0;
+  min-width: 10ch;
+  font-size: var(--text-md);
+  color: var(--text-strong);
+}
+.rec-cal {
+  display: flex;
+  flex-direction: column;
+}
+.rec-cal__row {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.rec-cal__head {
+  padding: var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  border-bottom: 1px solid var(--border-soft);
+}
+.rec-cal__cell {
+  min-height: 72px;
+  padding: var(--space-1);
+  border-right: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.rec-cal__row > .rec-cal__cell:last-child {
+  border-right: none;
+}
+.rec-cal__cell.is-empty {
+  background: var(--surface-cream-light);
+}
+.rec-cal__day {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+.rec-cal__entry {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-1);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm);
+  background: var(--orange-100);
+  color: var(--text-strong);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+.rec-cal__entry--income {
+  background: var(--status-ok-bg);
+}
+.rec-cal__entry--card_payment {
+  background: var(--accent-blue-soft);
+}
+.rec-cal__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

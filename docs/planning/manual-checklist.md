@@ -34,3 +34,13 @@ Steps only you can do: real Touch ID, browser sign-in, real banks, production. E
 - [ ] Label your main categories and merchants as necessary / not necessary (Spending → Necessary?) and see that the "not set" amount shrinks.
 - [ ] Glance at the Spending window at its default size: the summary and flow should be readable without scrolling, everything else behind tabs.
 - [ ] Contrast check of the heatmap shades and Sankey labels with a contrast tool.
+
+## Recurring, trajectory & investments
+- [ ] Recurring: with a real bank connected, the upcoming view for your checking account lists the bills and card statement you expect before your next paycheck, and the lowest point looks right.
+- [ ] Recurring: add a large test charge so checking would go below zero → the red warning appears at the top (account, how much short, date); remove it again → the warning goes.
+- [ ] Recurring: a bill you know varies (e.g. utilities) is marked "Estimate"; a subscription whose price changed shows "Was $X, now $Y" quietly.
+- [ ] Trajectory: hover the net worth chart → date, each account and the total; "By type" groups them; estimated (rebuilt) history is shaded once the balance rebuild runs on real data.
+- [ ] Trajectory: change an assumption → the projection moves right away; Save → it's still there after reopening the window. Try a life phase and check the "assumed to stay the same" years.
+- [ ] Trajectory: earning vs spending numbers match what you'd expect for a couple of months; clicking one opens its transactions (once the Transactions window is merged).
+- [ ] Investments: holdings and values match your brokerage; performance's "put in" matches your own record of transfers since connecting.
+- [ ] Investments: add a note to a dividend and see it after a sync (the sync must not wipe it).
