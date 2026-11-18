@@ -253,6 +253,7 @@ export interface Performance {
  * Performance vs what I put in, per account and in total. Contributions =
  * the value when history starts (the connection day) + transfers in −
  * transfers out since. Not Plaid's cost basis.
+ * TODO(revisit): the value on the first holdings day counts as put in, since earlier transfers aren't known.
  */
 export function performance(input: {
   accounts: readonly Account[];

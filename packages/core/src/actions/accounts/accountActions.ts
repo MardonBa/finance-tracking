@@ -62,6 +62,7 @@ function manualTransaction(fields: { id: string; accountId: string; amountCents:
   };
 }
 
+// TODO(revisit): the opening balance is marked with a confirmed "transfer" override so it is neither spending nor income; core-flows may prefer to recognise ids ending in "__opening".
 /** The opening balance is neither spending nor income: a confirmed transfer-bucket override. */
 function openingOverride(transactionId: string, now: string): TransactionOverride {
   return { transactionId, category: null, bucket: "transfer", necessity: null, note: "Starting balance", confirmedAt: now, updatedAt: now };

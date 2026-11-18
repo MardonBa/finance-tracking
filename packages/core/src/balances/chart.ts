@@ -66,6 +66,7 @@ export interface NetWorthChartInput {
   grouping: ChartGrouping;
   fill: FillMode;
   /** Hidden accounts are left out unless this is true. */
+  // TODO(revisit): hidden accounts are left out of the net worth chart by default.
   includeHidden?: boolean;
   /** Reasons from rebuildHistory for accounts that couldn't be rebuilt. */
   notRebuiltReasons?: Record<AccountId, string>;

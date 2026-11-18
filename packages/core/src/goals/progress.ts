@@ -218,6 +218,7 @@ export interface GoalProjection {
  * growing by `monthlyRateCents`: money fills goals in order, so goal g is
  * done when the balance reaches protected + the targets up to and
  * including g (earlier goals finishing speeds up later ones).
+ * TODO(revisit): "recent contribution rate" is the account's recent monthly growth, filled in priority order.
  */
 export function projectCompletion(input: {
   balanceCents: Cents;

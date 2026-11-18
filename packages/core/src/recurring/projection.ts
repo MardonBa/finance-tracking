@@ -122,6 +122,7 @@ export interface AccountProjection {
 /**
  * Projection for every cash account that has recurring charges, income or
  * a card paid from it. Events on `today` count (assumed not yet posted).
+ * TODO(revisit): charges dated today are assumed not yet posted; only cash accounts (checking, savings, cash) get a projection.
  * On the income day, charges due that day come after the window.
  */
 export function upcomingProjections(input: {
