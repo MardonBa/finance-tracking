@@ -297,9 +297,15 @@ const manualTxFields = {
 
 export const addManualTransaction = defineAction({
   name: "accounts.addManualTransaction",
-  description: "Add a hand-entered transaction to a manual account (positive = money in, negative = money out).",
-  input: z.object({ accountId: idSchema, ...manualTxFields }),
-  needs: ["accounts", "transactions"],
+  description: "Add a hand-entered transaction to a manual account (positive = money in, negative = money out), optionally with a category and a note.",
+  input: z.object({
+    accountId: idSchema,
+    ...manualTxFields,
+    /** Optional category (e.g. "FOOD_AND_DRINK") and note, saved as the transaction's override. */
+    category: z.string().min(1).max(100).nullable().optional(),
+    note: z.string().max(2000).nullable().optional(),
+  }),
+  needs: ["accounts", "transactions", "overrides"],
   examples: [{ accountId: "acc_cash", amountCents: -1200, date: "2026-10-20", description: "Farmers market", merchantName: "Farmers market" }],
   describe(data, input) {
     const a = needManual(data, input.accountId);
@@ -314,7 +320,13 @@ export const addManualTransaction = defineAction({
   apply(data, input, ctx) {
     const a = needManual(data, input.accountId);
     const row = manualTransaction({ id: ctx.newId(), accountId: a.id, amountCents: input.amountCents, date: input.date, description: input.description, merchantName: input.merchantName ?? null }, ctx.now);
-    return [{ op: "upsert", table: "transactions", row }, withBalance(a, [...data.transactions, row], ctx.now)];
+    const muts: Mutation[] = [{ op: "upsert", table: "transactions", row }, withBalance(a, [...data.transactions, row], ctx.now)];
+    const note = input.note && input.note.trim().length > 0 ? input.note : null;
+    if (input.category || note) {
+      const override: TransactionOverride = { transactionId: row.id, category: input.category ?? null, bucket: null, necessity: null, note, confirmedAt: null, updatedAt: ctx.now };
+      muts.push({ op: "upsert", table: "overrides", row: override });
+    }
+    return muts;
   },
 });
 

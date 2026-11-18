@@ -1,0 +1,74 @@
+/* Account editor, manual accounts and the account sheet (tokens only). */
+.ft-account-editor {
+  display: grid;
+  grid-template-columns: minmax(160px, 2fr) minmax(130px, 1fr) auto auto;
+  align-items: end;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  background: var(--surface-cream-light);
+}
+.ft-account-editor--compact {
+  padding: var(--space-2) var(--space-3);
+}
+.ft-account-editor__toggle {
+  padding-bottom: var(--space-2);
+}
+.ft-account-editor__balance {
+  padding-bottom: var(--space-2);
+  font-weight: var(--weight-bold);
+  color: var(--text-strong);
+  text-align: right;
+}
+.ft-account-editor__error {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--status-danger);
+}
+.ft-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-3);
+}
+.ft-inline-form {
+  padding: var(--space-3);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  background: var(--surface-cream-light);
+}
+.ft-section-title {
+  margin: 0;
+  font-size: var(--text-md);
+  color: var(--text-strong);
+}
+.ft-sheet-balance {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  color: var(--text-strong);
+}
+.ft-tx-list {
+  max-height: 260px;
+  overflow: auto;
+}
+.ft-tx-row {
+  display: grid;
+  grid-template-columns: 6.5em 1fr auto auto auto;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+.ft-tx-row__date {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+.ft-tx-row__desc {
+  display: grid;
+  min-width: 0;
+  color: var(--text-strong);
+}
+.ft-tx-row__amount {
+  font-weight: var(--weight-bold);
+  color: var(--text-strong);
+}
