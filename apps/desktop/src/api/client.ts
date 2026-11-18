@@ -13,6 +13,7 @@ export const API_URL: string = import.meta.env.VITE_API_URL ?? "http://localhost
  * by `npm run reset:dev`. Used ONLY in dev builds AND when the explicit flag
  * VITE_DEV_AUTH_BYPASS=1 is set (e.g. `VITE_DEV_AUTH_BYPASS=1 npm run dev`).
  * Always undefined in production builds.
+ * TODO(revisit): sync-dev-vars doesn't write the flag; pass it on the command line.
  */
 export const DEV_APP_TOKEN: string | undefined =
   import.meta.env.DEV && import.meta.env.VITE_DEV_AUTH_BYPASS === "1" ? import.meta.env.VITE_DEV_APP_TOKEN || undefined : undefined;

@@ -120,6 +120,8 @@ fn take_deep_links(session: State<'_, Session>) -> Vec<String> {
     std::mem::take(&mut *session.pending_links.lock().unwrap())
 }
 
+// TODO(revisit): macOS only registers financetracker:// for a bundled app
+// (`tauri build`), not under `tauri dev`.
 fn forward_links(app: &AppHandle, urls: Vec<String>) {
     if urls.is_empty() {
         return;

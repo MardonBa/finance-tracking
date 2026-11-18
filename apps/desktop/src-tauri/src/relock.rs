@@ -7,6 +7,7 @@
 pub const RELOCK_AFTER_SECS: u64 = 72 * 60 * 60;
 
 /// How often the background watcher checks whether the session expired.
+/// TODO(revisit): 30s granularity; the relock can fire up to 30s late.
 pub const RELOCK_CHECK_INTERVAL_SECS: u64 = 30;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

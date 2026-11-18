@@ -43,6 +43,7 @@ export interface BuildOptions {
   palette?: readonly string[];
 }
 
+// TODO(revisit): 6 named colours and a 2% cut-off for "Other" are first guesses.
 export function buildColorMap(items: readonly RankedItem[], opts: BuildOptions = {}): ColorMap {
   const palette = opts.palette ?? seriesColors;
   const maxColors = Math.min(opts.maxColors ?? palette.length, palette.length);

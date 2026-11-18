@@ -51,6 +51,13 @@ packages/core/       @ft/core: money (toCents, Money), dates, domain types, quer
 scripts/             gen-secrets, sync-dev-vars, reset-dev
 ```
 
+## Desktop app (shell)
+
+- **Sign-in:** first run is Google sign-in (system browser, PKCE, loopback on 127.0.0.1) → Touch ID setup → desktop; later launches ask for Touch ID first, and again after 72 hours. The credential lives in the macOS Keychain. To skip both in local dev: `VITE_DEV_AUTH_BYPASS=1 npm run dev` (uses `DEV_APP_TOKEN`; dev builds only).
+- **Adding a window (Phase 2):** create `apps/desktop/src/windows/<name>/window.tsx` with `export default defineWindow({ area: "spending", component: SpendingWindow })` (from `src/shell/registry.ts`). It replaces that area's placeholder; `useWindow()` gives the area, the app token and window actions. First-run steps (e.g. add banks) go in `apps/desktop/src/onboarding/<name>.tsx` via `defineOnboardingStep`.
+- **Styleguide:** open `#styleguide` in a dev build to see every component and state.
+- **Colours:** only `src/ui/tokens.css` / `tokens.ts` define colours (a test enforces it); charts use `src/ui/Chart.tsx` and `colorMap.ts` so a category keeps its colour everywhere.
+
 ## Rules that keep the numbers right
 
 - Money is integer cents everywhere. `toCents()` in `@ft/core` is the only decimal → cents conversion.

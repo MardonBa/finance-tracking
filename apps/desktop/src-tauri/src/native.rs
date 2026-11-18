@@ -1,6 +1,11 @@
 //! macOS-only native pieces: Touch ID (LocalAuthentication) and the Keychain.
 //! Other platforms get stubs that fail, so the crate still type-checks there.
 
+// TODO(revisit): the Keychain item has no user-presence access control
+// (kSecAccessControlUserPresence needs the data-protection keychain, i.e. a
+// signed app with a keychain-access-groups entitlement). Reads are gated in
+// Rust instead: `get_credential` refuses unless Touch ID unlocked the session.
+
 /// Keychain service/account names for the app credential.
 pub const KEYCHAIN_SERVICE: &str = "com.personal.financetracker.app-credential";
 pub const KEYCHAIN_ACCOUNT: &str = "backend";

@@ -140,6 +140,8 @@ function fit(win: WindowState, viewport: Size): WindowState {
   return { ...win, ...clampRect(win, viewport, minSizeOf(win.area)) };
 }
 
+// TODO(revisit): when the app window shrinks, windows are shrunk to fit and
+// keep that size when it grows again (no remembered "preferred" size).
 export function wmReducer(state: WMState, action: WMAction): WMState {
   switch (action.type) {
     case "open": {

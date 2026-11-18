@@ -6,6 +6,8 @@
 //! GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are baked in at build time from the
 //! gitignored root `.env` (see build.rs). For Google "Desktop app" clients the
 //! secret is not confidential (Google's docs say so), PKCE protects the code.
+//! TODO(revisit): the secret is compiled into the binary; fine for a Desktop
+//! client, but drop it if the OAuth client type ever changes.
 
 use std::io::{BufRead, BufReader, Write};
 use std::net::{TcpListener, TcpStream};
@@ -19,6 +21,7 @@ use crate::pkce;
 pub const AUTH_ENDPOINT: &str = "https://accounts.google.com/o/oauth2/v2/auth";
 pub const TOKEN_ENDPOINT: &str = "https://oauth2.googleapis.com/token";
 /// How long we wait for the browser to come back before giving up.
+/// TODO(revisit): 5 minutes is a guess.
 pub const SIGN_IN_TIMEOUT: Duration = Duration::from_secs(5 * 60);
 
 pub fn client_id() -> Option<&'static str> {

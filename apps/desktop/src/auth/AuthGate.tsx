@@ -151,6 +151,7 @@ export function AuthGate() {
               {addBanks ? (
                 <addBanks.component token={state.token} done={() => setAddingBanks(false)} />
               ) : (
+                // TODO(revisit): placeholder until Phase 2 registers the "add-banks" onboarding step.
                 <Card>
                   <EmptyState
                     icon="plus"
