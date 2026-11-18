@@ -20,7 +20,8 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "gen:secrets": "node scripts/gen-secrets.mjs",
     "sync:dev-vars": "node scripts/sync-dev-vars.mjs",
-    "reset:dev": "node scripts/reset-dev.mjs"
+    "reset:dev": "node scripts/reset-dev.mjs",
+    "restore": "node --experimental-strip-types --no-warnings apps/api/scripts/restore.ts"
   },
   "devDependencies": {
     "concurrently": "^10.0.7",
