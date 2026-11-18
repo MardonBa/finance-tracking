@@ -2,7 +2,7 @@
 
 **Status:** Draft
 **Last updated:** 2026-11-17
-**Related:** [decisions.md](../../decisions.md), `ideas.md` (Bayan's notes; source of the UI style direction)
+**Related:** [decisions.md](../../decisions.md), [success-criteria.md](./success-criteria.md) (what "done" looks like for each area), `ideas.md` (Bayan's notes; source of the UI style direction)
 
 The app's core purpose is **observability of where your money goes**: answering "where is it going?", "am I on track?", and "when do I reach my goal?" at a glance, with every number traceable to the transactions behind it.
 

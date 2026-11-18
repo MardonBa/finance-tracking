@@ -86,11 +86,17 @@ Newest at the bottom. Mark superseded entries rather than deleting them.
 - **Free-plan limits:** 10 ms of CPU per request. Time waiting on Plaid or Gemini doesn't count, but heavy calculations or long agent loops may need batching or Durable Objects.
 - **Gemini free tier:** Google may use prompts and responses to improve its products, and it has rate limits. The privacy rules in 006 (tools return mostly aggregates; identifiers never sent) matter more because of this. Moving to the paid tier would end that data use if it becomes a concern.
 
+**Addendum (2026-11-18): login, minimal data, backups**
+- **Login:** sign in with Google; the backend accepts only my Google account. The app's credential is kept in the Keychain behind **Touch ID**, required on open and again after 72 hours open. The credential can be revoked.
+- **Read-only:** only read-only Plaid products are used (Transactions, Balance, Investments, Liabilities); Auth, Identity, Transfer, and Payment Initiation are never enabled, and the Plaid client is limited to an allowlist of read-only endpoints.
+- **Minimal data:** only fields needed for a visualization, calculation, or rule are stored (raw bank descriptions included); no account numbers, owner identity, or location data. Plaid access tokens are encrypted with a key held in a Workers secret.
+- **Backups:** data that can't be re-fetched from Plaid (my edits, budgets, goals, snapshots) is exported on a schedule, encrypted, to Cloudflare R2's free tier, alongside D1's point-in-time restore.
+- **Plaid Link** runs in the system browser via Hosted Link and returns to the app with a deep link, which also handles Chase's OAuth.
+
 **Open questions:**
-- How the app authenticates to the backend: single user, so probably a long-lived token stored in the Keychain, with a way to revoke it.
-- Whether Plaid access tokens get an extra layer of encryption on top of D1's.
-- Backup and export of the D1 database.
 - Confirm current free-plan limits (Cloudflare, Gemini) before building; they change.
+
+**Details:** [docs/planning/success-criteria.md](docs/planning/success-criteria.md) §2–§4
 
 ---
 
@@ -108,6 +114,8 @@ Newest at the bottom. Mark superseded entries rather than deleting them.
 **Why:** Fill-in-order is the simplest model to explain and visualize, and it makes priority reordering meaningful. One account per goal keeps the math tied to a real balance. Starting fresh keeps budgets easy to read.
 
 **Addendum:** An account can hold a **protected amount** (e.g. an emergency fund) that is filled before any goal and is never assigned to goals.
+
+**Addendum (2026-11-18): budget structure.** *Supersedes "budget = category + limit + period".* A budget is **one overall amount per period** (calendar month by default) with **parts** inside it, each with an expected amount. A part is defined by categories, merchants, or a hand-applied **tag**. Each transaction counts toward at most one part, and a tag beats a category. Whatever the parts don't cover is "Everything else". **Trips** (tagged one-off budgets) have their own start and end dates, which can span months; trip spending still counts toward each month's overall total but not toward any monthly part.
 
 **Details:** [docs/planning/design.md](docs/planning/design.md)
 
@@ -127,6 +135,12 @@ Newest at the bottom. Mark superseded entries rather than deleting them.
 - **Splitting is manual:** a user can split one transaction across several categories.
 - *Proposed:* **Income** is identified by Plaid's income categories (after excluding transfers), then payer rules, then per-transaction overrides. "Count deposits to this account as income" is a fallback setting per account, not the main mechanism.
 
+**Addendum (2026-11-18):**
+- **Unmatched transfers:** a transaction Plaid labels as a transfer with no matching other half counts as a transfer and goes into "Needs a look" until confirmed or covered by a rule.
+- **Poker:** transactions can be tagged Poker (with payer/payee rules). Individual Poker transactions are neither spending nor income; the **net Poker result per period counts as income** (a net loss is negative Poker income).
+- **Manual accounts:** cash is tracked as a manual account with hand-entered transactions, following the same rules; an ATM withdrawal into it is a transfer.
+- **Necessary / not necessary:** I label categories and merchants myself; there are no defaults.
+
 **Why:** Transfers are the biggest source of wrong numbers, so they get both automatic and manual handling. Plaid's categories avoid maintaining our own taxonomy. Counting only cleared charges keeps totals stable. Assigning refunds to the original period reflects what the purchase really cost. A per-account income flag would misclassify reimbursements, refunds, and interest.
 
 ---
@@ -134,13 +148,15 @@ Newest at the bottom. Mark superseded entries rather than deleting them.
 ## 006: AI agent scope and connections
 
 **Date:** 2026-11-17
-**Status:** Accepted, except where marked *proposed*
+**Status:** Accepted
 
 **Decision:**
 - **AI parity with the UI:** the agent can analyze data and do anything the UI can, through the same backend API (via harness tools).
 - **AI only runs when asked.** The AI never generates anything on its own: no automatic chart notes, insights, or coaching on sync or page load. Every AI output comes from a user action (asking a question, clicking "Explain this"). Unusual-spending flags stay rule-based, not AI. *(Added 2026-11-17)*
-- *Proposed:* the agent asks for confirmation before any change, and every agent change is logged and can be undone.
-- *Proposed:* **privacy.** The model sees only what tools return (mostly aggregates; individual transactions only when needed). Account numbers, Plaid tokens, and personal identifiers are never sent. Each conversation has a "what was sent" view.
+- The agent **asks for approval before any change**, showing before → after, and every agent change is logged and can be undone. *(Accepted 2026-11-18)*
+- **Scope of actions:** every manual action in the UI, except connecting, reconnecting, or removing banks, sign-in and security settings, and anything that moves money. A test keeps the UI and agent actions in sync. *(Added 2026-11-18)*
+- **Privacy.** The model sees only what tools return, which are the same queries the charts use (mostly aggregates; individual transactions and their notes only when needed). Account numbers, Plaid tokens, and personal identifiers are never sent. Each conversation has a "what was sent" view. *(Accepted 2026-11-18)*
+- **Conversations aren't saved;** only the action log of approved changes is kept. *(Added 2026-11-18)*
 - **Broken connections** prompt the user to reconnect via Plaid's update mode, which keeps transaction history. Show the last successful update from Plaid, with our own last-synced time as a fallback.
 
 **Why:** One API for both UI and agent keeps them from drifting apart. Confirmation matters because merchant names and descriptions are untrusted text that reaches the model. Sending only tool results keeps exposure minimal. Running AI only when asked keeps it from adding noise, and keeps usage within Gemini's free tier.
