@@ -15,7 +15,7 @@ Steps only you can do: real Touch ID, browser sign-in, real banks, production. E
 
 ## Bank connections, webhooks, backups (backend track)
 - [ ] Hosted Link in a browser (Sandbox): First Platypus with `user_good`/`pass_good`, then Platypus OAuth Bank, then cancel partway → nothing saved. Steps: `docs/planning/plaid-hosted-link-spike.md`.
-- [x] Webhooks from Plaid: done 2026-11-18 by the orchestrator. Dev Worker deployed at `https://ft-api-dev.ft-api.workers.dev` (`npm run deploy:dev -w @ft/api`); connecting a Sandbox bank made Plaid send 4 real webhooks to `/plaid/webhook`, all answered 200 (unverified requests get 401), seen with `wrangler tail`.
+- [x] Webhooks from Plaid: done 2026-11-18 by the orchestrator. Dev Worker deployed at `https://ft-api-dev.ft-api.workers.dev` (`npm run ship:api:dev`); connecting a Sandbox bank made Plaid send 4 real webhooks to `/plaid/webhook`, all answered 200 (unverified requests get 401), seen with `wrangler tail`.
 - [ ] Optionally add `ALLOWED_GOOGLE_SUB` to `.env` (email is already set).
 - [ ] Restore one backup into a fresh remote database (`docs/backup-restore.md`).
 - [ ] Production: set `PUBLIC_API_URL` and all production secrets (`PLAID_SECRET`, `TOKEN_ENC_KEY`, `BACKUP_ENC_KEY`, `APP_TOKEN_PEPPER`).

@@ -19,7 +19,7 @@
     "test:rust": "cd apps/desktop/src-tauri && PATH=\"$HOME/.cargo/bin:$PATH\" cargo test",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "ship:check": "npm run typecheck && npm test",
-    "ship:api:dev": "npm run ship:check && cd apps/api && npx wrangler d1 migrations apply DB --remote --env dev && npx wrangler deploy --env dev",
+    "ship:api:dev": "npm run ship:check && cd apps/api && npx wrangler d1 migrations apply DB --remote --env dev && npx wrangler deploy --env dev --var PUBLIC_API_URL:https://ft-api-dev.ft-api.workers.dev",
     "ship:api:prod": "npm run ship:check && cd apps/api && npx wrangler d1 migrations apply DB --remote --env production && npx wrangler deploy --env production",
     "ship:app": "npm run ship:check && node scripts/require-env.mjs VITE_API_URL && cd apps/desktop && npm run tauri build",
     "gen:secrets": "node scripts/gen-secrets.mjs",
