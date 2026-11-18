@@ -28,8 +28,9 @@ export interface GoalCardProps {
 export function GoalCard({ goal: g, change, explainParams, highlighted, onEdit, onArchive }: GoalCardProps) {
   const color = goalColor(g.colorSlot);
   const complete = g.savedCents >= g.targetCents;
-  const current = g.contributions?.find((c) => c.isCurrent);
-  const recent = g.contributions?.filter((c) => !c.isCurrent) ?? [];
+  // A funded goal needs no more contributions; unknown periods (no balance history) are left out.
+  const current = complete ? undefined : g.contributions?.find((c) => c.isCurrent);
+  const recent = g.contributions?.filter((c) => !c.isCurrent && c.actualCents !== null) ?? [];
   const loss = change && change.changeCents < 0 && change.summary;
   return (
     <article className={`gl-card${highlighted ? " is-highlighted" : ""}`} id={`goal-item-${g.goalId}`} style={{ ["--_goal" as string]: color }} aria-labelledby={`goal-name-${g.goalId}`}>
@@ -64,7 +65,13 @@ export function GoalCard({ goal: g, change, explainParams, highlighted, onEdit, 
           )}
           {current && (
             <li>
-              <StatusLabel status={current.met ? "on-track" : "warning"}>{current.met ? "Met" : "So far"}</StatusLabel> {current.label}
+              {current.actualCents === null ? (
+                <span className="gl-muted">Expecting {usd(current.expectedCents)} per period · not enough balance history yet to compare</span>
+              ) : (
+                <>
+                  <StatusLabel status={current.met ? "on-track" : "warning"}>{current.met ? "Met" : "So far"}</StatusLabel> {current.label}
+                </>
+              )}
               {recent.length > 0 && (
                 <span className="gl-recent" aria-label="Recent periods">
                   {recent.map((c) => (

@@ -15,6 +15,7 @@ interface AccountRow {
   id: string;
   name: string;
   isDebt: boolean;
+  kind: string;
   hidden: boolean;
   balanceCents: number | null;
 }
@@ -22,8 +23,8 @@ interface AccountRow {
 type Pending = { title: string; steps: ActionStep[]; destructive?: boolean };
 
 export function GoalEditor({ goal, siblings, onClose }: { goal?: GoalCardValue; siblings: GoalCardValue[]; onClose: () => void }) {
-  const accounts = useQuery<AccountRow[]>("accounts.list", { includeHidden: false });
-  const usable = (accounts.data?.value ?? []).filter((a) => !a.isDebt);
+  const accounts = useQuery<{ accounts: AccountRow[] }>("accounts.list", { includeHidden: false });
+  const usable = (accounts.data?.value.accounts ?? []).filter((a) => !a.isDebt);
   const [pending, setPending] = useState<Pending | null>(null);
   const [name, setName] = useState(goal?.name ?? "");
   const [target, setTarget] = useState(dollarsText(goal?.targetCents));
@@ -33,7 +34,8 @@ export function GoalEditor({ goal, siblings, onClose }: { goal?: GoalCardValue; 
   const [contribution, setContribution] = useState(dollarsText(goal?.plan.expectedContributionCents));
   const [period, setPeriod] = useState<ContributionPeriod>(goal?.plan.contributionPeriod ?? "monthly");
 
-  const account = accountId || usable[0]?.id || "";
+  // Default: the account other goals use, else a savings account, else the first.
+  const account = accountId || siblings[0]?.accountId || usable.find((a) => a.kind === "savings")?.id || usable[0]?.id || "";
   const targetCents = parseDollars(target);
   const contribCents = contribution.trim() ? parseDollars(contribution) : null;
   const contribBad = contribution.trim() !== "" && (contribCents === null || contribCents === 0);
