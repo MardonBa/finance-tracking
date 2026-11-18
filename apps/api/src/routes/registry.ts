@@ -3,7 +3,7 @@
  *   GET  /q/:name?params=<json>   run a query (params as URL-encoded JSON)
  *   POST /q/:name                 run a query (params as JSON body)
  *   POST /a/:name/preview         describe an action (before → after), changes nothing
- *   POST /a/:name                 apply an action; logged in action_log
+ *   POST /a/:name[?source=ai]     apply an action; logged in action_log (source ai = approved assistant proposal)
  *   GET  /actions                 recent action log
  *   POST /actions/:id/undo        undo a logged action
  */
@@ -114,7 +114,10 @@ export const registryRoutes = new Hono<HonoEnv>()
   .post("/a/:name/preview", async (c) =>
     c.json({ preview: await previewAction(c.env, c.req.param("name"), await readJson(c.req.raw)) }),
   )
-  .post("/a/:name", async (c) => c.json(await applyAction(c.env, c.req.param("name"), await readJson(c.req.raw), "user")))
+  // ?source=ai marks a change the user approved from an assistant proposal (§16 action log).
+  .post("/a/:name", async (c) =>
+    c.json(await applyAction(c.env, c.req.param("name"), await readJson(c.req.raw), c.req.query("source") === "ai" ? "ai" : "user")),
+  )
   .get("/actions", async (c) => {
     const limit = z.coerce.number().int().min(1).max(200).catch(50).parse(c.req.query("limit"));
     const rows = await getDb(c.env.DB)

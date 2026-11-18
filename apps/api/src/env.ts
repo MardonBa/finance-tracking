@@ -22,6 +22,13 @@ export interface AppEnv {
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
   GEMINI_API_KEY: string;
+  /** Assistant model (wrangler.toml vars); default gemini-2.5-flash. */
+  GEMINI_MODEL?: string;
+  /** Used when the main model hits its quota; default gemini-2.5-flash-lite. */
+  GEMINI_FALLBACK_MODEL?: string;
+  /** Our own Gemini request budget (ai/rateLimit.ts); defaults match the free tier. */
+  AI_RPM_LIMIT?: string;
+  AI_RPD_LIMIT?: string;
   /** Only this Google account may sign in (subject id preferred, email as fallback). */
   ALLOWED_GOOGLE_SUB?: string;
   ALLOWED_GOOGLE_EMAIL?: string;

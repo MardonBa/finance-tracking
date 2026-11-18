@@ -52,7 +52,8 @@ export function apiRequest<T>(path: string, token: string, init: RequestInit = {
   return call<T>(path, token, init);
 }
 
-async function call<T>(path: string, token: string, init: RequestInit = {}): Promise<T> {
+/** Authenticated JSON call to the API (also used by the assistant window, windows/assistant/api.ts). */
+export async function call<T>(path: string, token: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
     headers: { "content-type": "application/json", authorization: `Bearer ${token}`, ...init.headers },

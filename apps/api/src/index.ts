@@ -16,6 +16,7 @@ import { NotFound, registryRoutes, todayFor } from "./routes/registry.ts";
 import { plaidRoutes } from "./routes/plaid.ts";
 import { connectionRoutes } from "./routes/connections.ts";
 import { devRoutes } from "./routes/dev.ts";
+import { aiRoutes } from "./ai/route.ts";
 import { syncAllItems } from "./sync/run.ts";
 import { saveDailySnapshots } from "./sync/snapshots.ts";
 // Note: the Worker entry may only export handlers (workerd rejects other values), so constants live elsewhere.
@@ -50,6 +51,7 @@ app.route("/", plaidRoutes);
 app.route("/", authRoutes);
 app.route("/", registryRoutes);
 app.route("/", connectionRoutes);
+app.route("/", aiRoutes); // only runs when the user asks (decision 006)
 app.route("/", devRoutes); // 404 unless ENVIRONMENT=dev and PLAID_ENV=sandbox
 
 app.notFound((c) => c.json({ error: "Not found" }, 404));
