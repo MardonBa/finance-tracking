@@ -203,7 +203,7 @@ export function OverviewWindow() {
       else showConnectionPrompt();
     }
     else if (a.kind === "low-balance") openItem({ area: "recurring" });
-    // TODO(revisit): wire after merge — the Transactions window's item ids for its review lists are assumed.
+    // The Transactions window switches to "Needs a look" / "Balance check" on these item ids.
     else if (a.kind === "needs-a-look") openItem({ area: "transactions", itemId: "needs-a-look" });
     else openItem({ area: "transactions", itemId: "reconciliation" });
   };

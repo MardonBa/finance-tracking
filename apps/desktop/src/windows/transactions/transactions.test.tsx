@@ -8,10 +8,12 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { Money, emptyData } from "@ft/core";
-import { DRILLDOWN_EVENT, openDrillDown, openMerchant } from "../../data/drilldown.ts";
+import { DRILLDOWN_EVENT, openDrillDown, openItem, openMerchant } from "../../data/drilldown.ts";
 import { calls, coreData, resetCore, runCoreQuery, TODAY } from "../testing/coreApi.ts";
 import { renderInWindow } from "../testing/render.tsx";
 import { TransactionsWindow } from "./TransactionsWindow.tsx";
+import { UnexplainedNote } from "../../accounts/AccountSheets.tsx";
+import { OPEN_ITEM_EVENT } from "../../data/drilldown.ts";
 
 vi.mock("../../api/client.ts", async () => (await import("../testing/coreApi.ts")).clientMock);
 
@@ -216,5 +218,80 @@ describe("row fixes go through previewed actions and refetch", { timeout: 30_000
     fireEvent.click(screen.getAllByRole("button", { name: "Yes, it's a transfer" })[0]!);
     await waitFor(() => expect(screen.getByRole("tab", { name: `Needs a look (${before - 1})` })).toBeTruthy());
     expect(screen.getByRole("status").textContent).toContain("Confirmed");
+  });
+});
+
+describe("views other windows open (Overview alerts strip) and the balance check (§6)", { timeout: 30_000 }, () => {
+  const OCT_SO_FAR = { from: "2026-10-01", to: TODAY };
+
+  it("openItem 'reconciliation' before mount opens the balance check: unexplained shown on the account, money in drills down", async () => {
+    openItem({ area: "transactions", itemId: "reconciliation" }); // fired before the window mounted
+    renderInWindow(<TransactionsWindow />);
+    await waitFor(() => expect(screen.getByTestId("balance-check")).toBeTruthy());
+    expect((screen.getByRole("tab", { name: "Balance check" }) as HTMLElement).getAttribute("aria-selected")).toBe("true");
+    const rec = runCoreQuery<{ accounts: { accountId: string; status: string; unexplainedCents: number }[]; unexplainedCount: number }>("flows.reconciliation", OCT_SO_FAR);
+    const chk = rec.value.accounts.find((a) => a.accountId === "chk")!;
+    expect(chk.status).toBe("unexplained");
+    await waitFor(() => expect(screen.getByTestId("unexplained-chk").textContent).toBe(Money.format(chk.unexplainedCents, { showPlus: true })));
+    expect(within(screen.getByTestId("check-chk")).getByText(`Unexplained ${Money.format(chk.unexplainedCents, { showPlus: true })}`)).toBeTruthy();
+    // An account that adds up says so; investments show market change instead of "unexplained".
+    expect(within(screen.getByTestId("check-hysa")).getByText("Adds up")).toBeTruthy();
+    expect(within(screen.getByTestId("check-brok")).queryByText(/^Unexplained/)).toBeNull();
+    // Across everything: the leftover is shown, never hidden.
+    const eq = runCoreQuery<{ leftoverCents: number }>("flows.netWorthEquation", OCT_SO_FAR).value;
+    await waitFor(() => expect(screen.getByTestId("leftover").textContent).toBe(Money.format(eq.leftoverCents, { showPlus: true })));
+    // Money in drills down to a list whose total equals it.
+    const inFig = rec.figures["chk.in"]!;
+    fireEvent.click(screen.getByRole("button", { name: `Checking money in: ${Money.format(inFig.cents)}. Show transactions` }));
+    await waitFor(() => expect(screen.getByTestId("drill-total").textContent).toBe(Money.format(inFig.cents)));
+    // Clearing the filter returns to the balance check tab.
+    fireEvent.click(screen.getByRole("button", { name: "Clear filter and show all transactions" }));
+    await waitFor(() => expect(screen.getByTestId("balance-check")).toBeTruthy());
+  });
+
+  it("openItem 'needs-a-look' while open switches to Needs a look; other areas' items are ignored", async () => {
+    renderInWindow(<TransactionsWindow />);
+    await notLoading();
+    act(() => openItem({ area: "goals", itemId: "needs-a-look" }));
+    expect((screen.getByRole("tab", { name: "All transactions" }) as HTMLElement).getAttribute("aria-selected")).toBe("true");
+    act(() => openItem({ area: "transactions", itemId: "needs-a-look" }));
+    await waitFor(() => expect((screen.getByRole("tab", { name: /^Needs a look/ }) as HTMLElement).getAttribute("aria-selected")).toBe("true"));
+    await waitFor(() => expect(screen.getByRole("list", { name: "Needs a look" })).toBeTruthy());
+  });
+
+  it("the Poker summary shows money in, out and the net for the month, each drilling down", async () => {
+    renderInWindow(<TransactionsWindow />);
+    await notLoading();
+    fireEvent.click(screen.getByRole("tab", { name: "Poker" }));
+    const p = runCoreQuery<{ inCents: number; outCents: number; netCents: number }>("flows.poker", OCT_SO_FAR);
+    expect(p.value.netCents).toBe(p.value.inCents - p.value.outCents);
+    expect(p.value.netCents).toBeLessThan(0);
+    const net = await screen.findByRole("button", { name: `Net result: ${Money.format(p.value.netCents, { showPlus: true })}. Show transactions` });
+    expect(screen.getByRole("button", { name: `Money in: ${Money.format(p.value.inCents)}. Show transactions` })).toBeTruthy();
+    expect(screen.getByRole("button", { name: `Money out: ${Money.format(p.value.outCents)}. Show transactions` })).toBeTruthy();
+    expect(screen.getByText("A loss: counts as negative income")).toBeTruthy();
+    fireEvent.click(net);
+    await waitFor(() => expect(screen.getByTestId("drill-total").textContent).toBe(Money.format(p.figures.net!.cents)));
+  });
+
+  it("the account sheet shows this month's unexplained difference on that account and opens the balance check", async () => {
+    const heard: unknown[] = [];
+    const on = (e: Event) => heard.push((e as CustomEvent).detail);
+    window.addEventListener(OPEN_ITEM_EVENT, on);
+    try {
+      renderInWindow(<UnexplainedNote accountId="chk" />, "overview");
+      const chk = runCoreQuery<{ accounts: { unexplainedCents: number }[] }>("flows.reconciliation", { ...OCT_SO_FAR, accountId: "chk" }).value.accounts[0]!;
+      const note = await screen.findByTestId("account-unexplained");
+      expect(note.textContent).toContain(`Unexplained this month: ${Money.format(chk.unexplainedCents, { showPlus: true })}`);
+      fireEvent.click(within(note).getByRole("button", { name: "Show the balance check" }));
+      expect(heard).toContainEqual({ area: "transactions", itemId: "reconciliation" });
+    } finally {
+      window.removeEventListener(OPEN_ITEM_EVENT, on);
+    }
+    cleanup();
+    // An account that adds up shows nothing.
+    renderInWindow(<UnexplainedNote accountId="hysa" />, "overview");
+    await waitFor(() => expect(calls.filter((c) => c.name === "flows.reconciliation").length).toBeGreaterThan(1));
+    expect(screen.queryByTestId("account-unexplained")).toBeNull();
   });
 });
