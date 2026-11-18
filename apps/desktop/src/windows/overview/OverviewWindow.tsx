@@ -78,7 +78,8 @@ interface GoalCard {
   targetCents: number;
   percent: number;
   deadline: { aheadCents: number; overdue: boolean; label: string } | null;
-  contributions: Array<{ isCurrent: boolean; met: boolean | null; label: string }>;
+  /** Null when the goal has no expected contribution. */
+  contributions: Array<{ isCurrent: boolean; met: boolean | null; label: string }> | null;
   projection: { label: string } | null;
 }
 interface AccountRow {
@@ -616,7 +617,7 @@ function goalStatus(g: GoalCard): { status: Status; text: string } {
     if (g.deadline.overdue) return { status: "over", text: "Past deadline" };
     return g.deadline.aheadCents >= 0 ? { status: "on-track", text: "On track" } : { status: "warning", text: "Behind" };
   }
-  const current = g.contributions.find((c) => c.isCurrent);
+  const current = g.contributions?.find((c) => c.isCurrent);
   if (current && current.met === false) return { status: "warning", text: "Behind" };
   if (current && current.met === true) return { status: "on-track", text: "On track" };
   return { status: "on-track", text: g.projection?.label ?? "Saving" };

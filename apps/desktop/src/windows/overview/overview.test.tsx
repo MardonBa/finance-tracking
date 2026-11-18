@@ -6,6 +6,7 @@
  */
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { Money } from "@ft/core";
 import { DRILLDOWN_EVENT, OPEN_ITEM_EVENT, type DrillDownRequest, type OpenItemRequest } from "../../data/drilldown.ts";
 import { resetCore, runCoreQuery, TODAY } from "../../test/coreBackend.tsx";
 import { renderInWindow } from "../../test/render.tsx";
@@ -164,6 +165,83 @@ describe("OverviewWindow", { timeout: 30_000 }, () => {
       }
       fireEvent.click(screen.getByRole("button", { name: /^Net worth .*Open Trajectory/ }));
       expect(cap.items.at(-1)).toEqual({ area: "trajectory" });
+    } finally {
+      cap.off();
+    }
+  });
+
+  it("each card shows what §13 asks for, with no clicks: spending vs usual by category, recent spending, budget pace, net worth change and trend, account freshness", async () => {
+    // Balances from a month ago, so "since last month" has something to compare with.
+    const { coreData } = await import("../../test/coreBackend.tsx");
+    const d = coreData();
+    resetCore({ ...d, balanceSnapshots: [...d.balanceSnapshots, ...d.balanceSnapshots.filter((x) => x.date === "2026-09-30").map((x) => ({ ...x, date: "2026-09-20" }))] });
+    renderInWindow(<OverviewWindow />, "overview");
+    await waitFor(() => expect(document.querySelector(".ov")?.getAttribute("data-ready")).toBe("true"));
+    // Spending: this month's total, compared with usual, split by category.
+    const sum = runCoreQuery<{ spendingCents: number; usual: { spendingCents: number } | null }>("spending.monthlySummary", { month: TODAY.slice(0, 7), usualMonths: 3 }).value;
+    expect(screen.getByRole("button", { name: `Spent ${Money.format(sum.spendingCents)} this month. Show transactions` })).toBeTruthy();
+    const card = (cls: string) => document.querySelector(`.${cls}`) as HTMLElement;
+    if (sum.usual) expect(within(card("ov-spending")).getByText(/(more|less) than usual$/)).toBeTruthy();
+    const cats = within(screen.getByRole("list", { name: "Spending by category" })).getAllByRole("listitem");
+    expect(cats.length).toBeGreaterThan(1);
+    // Recent spending: at least 7 latest, each with merchant, category, amount and date.
+    const rows = runCoreQuery<{ rows: { merchantName: string | null; amountCents: number; categoryLabel: string | null }[] }>("transactions.list", {
+      measure: "amount", buckets: ["spending"], includePending: true, to: TODAY, limit: 10,
+    }).value.rows;
+    const shown = within(card("ov-recent")).getAllByRole("button", { name: /Transaction details$/ });
+    expect(shown).toHaveLength(Math.min(7, rows.length));
+    shown.forEach((b, i) => {
+      expect(b.getAttribute("aria-label")).toContain(`${rows[i]!.merchantName}, ${Money.format(rows[i]!.amountCents)}, `);
+      expect(b.textContent).toContain(rows[i]!.categoryLabel ?? "Uncategorised");
+    });
+    // Budget: the overall bar with its pace marker, and the parts that are over or running hot (or "every part is on pace").
+    const b = runCoreQuery<{ name: string; overall: { spentCents: number; plannedCents: number } }[]>("budgets.overview", {}).value[0]!;
+    expect(screen.getByRole("button", { name: `${b.name}: ${Money.format(b.overall.spentCents)} of ${Money.format(b.overall.plannedCents)}. Open Budgets` })).toBeTruthy();
+    expect(card("ov-budgets").querySelector(".ov-bar__pace")).not.toBeNull();
+    expect(within(card("ov-budgets")).queryAllByRole("button", { name: /: (Over|Running hot)\. Open Budgets$/ }).length > 0 || within(card("ov-budgets")).queryByText("Every part is on pace.") !== null).toBe(true);
+    // Net worth: the change since a month ago and a small trend line.
+    expect(within(card("ov-networth")).getByText(/since Sep 20$/)).toBeTruthy();
+    expect(card("ov-networth").querySelector("svg.ov-spark polyline")).not.toBeNull();
+    // Accounts: each with its balance and when it was last updated.
+    const accounts = within(card("ov-accounts")).getAllByRole("button", { name: /Account details$/ });
+    expect(accounts.length).toBeGreaterThan(0);
+    for (const a of accounts) expect(a.textContent).toMatch(/Updated |Entered by hand|Out of date/);
+  });
+
+  it("the goals card shows each goal's picture, progress and whether it's on track", async () => {
+    const { goalsFixture } = await import("@ft/core/fixtures");
+    resetCore(goalsFixture().data);
+    renderInWindow(<OverviewWindow />, "overview");
+    const goals = runCoreQuery<{ goals: { name: string; percent: number }[] }>("goals.list", {}).value.goals;
+    expect(goals.length).toBeGreaterThan(0);
+    for (const g of goals.slice(0, 4)) {
+      const btn = await screen.findByRole("button", { name: new RegExp(`^${g.name}: ${Math.round(g.percent)}% saved, (Reached|On track|Behind|Past deadline|.+)\\. Open Goals$`) });
+      expect(btn.querySelector(".ov-goal__pic")).not.toBeNull();
+      expect(btn.querySelector(".ov-goal__fill")).not.toBeNull();
+      expect(btn.querySelector(".ui-status")).not.toBeNull(); // status as icon + text, never colour alone
+    }
+  });
+
+  it("the alerts strip's Needs a look and unexplained items open the Transactions window on those views", async () => {
+    const cap = capture();
+    try {
+      renderInWindow(<OverviewWindow />, "overview");
+      const strip = await screen.findByRole("list", { name: "Needs attention" });
+      const rec = runCoreQuery<{ unexplainedCount: number }>("flows.reconciliation", { from: `${TODAY.slice(0, 7)}-01`, to: TODAY }).value.unexplainedCount;
+      expect(rec).toBeGreaterThan(0);
+      const items = within(strip).getAllByRole("listitem");
+      for (const li of items) {
+        const text = li.textContent ?? "";
+        if (/Needs a look/.test(text)) {
+          fireEvent.click(within(li).getByRole("button"));
+          expect(cap.items.at(-1)).toEqual({ area: "transactions", itemId: "needs-a-look" });
+        }
+        if (/unexplained/i.test(text)) {
+          fireEvent.click(within(li).getByRole("button"));
+          expect(cap.items.at(-1)).toEqual({ area: "transactions", itemId: "reconciliation" });
+        }
+      }
+      expect(cap.items.map((i) => i.itemId)).toEqual(expect.arrayContaining(["needs-a-look", "reconciliation"]));
     } finally {
       cap.off();
     }
