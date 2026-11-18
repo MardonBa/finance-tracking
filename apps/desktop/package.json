@@ -15,6 +15,7 @@
     "@ft/core": "*",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-deep-link": "^2.6.3",
+    "@tauri-apps/plugin-fs": "^2.7.1",
     "@tauri-apps/plugin-opener": "^2",
     "echarts": "^6.1.0",
     "echarts-for-react": "^3.1.0",

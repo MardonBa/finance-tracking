@@ -73,6 +73,16 @@ Resolved from Phase 0: the Plaid webhook is now verified and handled, `scheduled
 - **Seams for the core tracks:** `apps/api/src/sync/hooks.ts` (`afterTransactionsSynced` for classification and transfer matching, `afterDailySnapshots` for rebuild and downsampling) are no-ops until core-flows and core-balances wire them up. Manual accounts are snapshotted from `current_balance_cents`; computing that balance from their transactions belongs to core.
 - **Manual checks (user):** Hosted Link in a browser with Sandbox `user_good`/`pass_good`, the Platypus OAuth Bank, cancelling partway, and webhook delivery to a deployed dev Worker (`docs/planning/plaid-hosted-link-spike.md`). Also a real restore into a fresh remote database (`docs/backup-restore.md`), and Google sign-in with a non-allowed account (should get 403).
 
+## Phase 2: budgets-goals
+
+- **Loss explanations look back two weeks** (`LOSS_LOOKBACK_DAYS` in `windows/goals/GoalsWindow.tsx`). `goals.explainChanges` explains withdrawals between two balances; a goal that lost money because a higher-priority goal was added or reordered is explained only in that action's before → after preview and the reorder toast, not later on the card (that needs a priority history in core).
+- **A new goal celebrates the milestones it already covers.** A goal created on an account with unassigned money plays its milestones right away. Decide whether `goals.create` should mark existing milestones as seen.
+- **Goal colours use the stable `colorSlot`** (`goalColor(slot)` in `windows/goals/goalColors.ts`), not `goalColorMap(ids)`. Core reuses the lowest free slot, so a colour can be reused after a goal is archived. Overview should import `goalColor` too.
+- **Budget part editor uses one target kind per part** (categories, merchants or one tag) though `budgets.createPart` accepts a mix. A tag part only lists existing tags; new tags come from the Transactions window (`transactions.setTags`).
+- **Achievement purchase date** shows the transaction's posted date; the purchase picker shows the ledger date (authorized), so they can differ by a day.
+- **Pictures in the plain browser** use IndexedDB (per origin), so a different dev port shows placeholders. Pictures are stored as raw bytes with no size cap beyond 15 MB per pick.
+- **History grid bands** (≤ −25%, < −5%, ±5%, ≤ +25%, > +25%) are first guesses (`cellBand` in `windows/budgets/HistoryView.tsx`).
+
 ## Phase 2: recurring-trajectory-invest
 
 - **New core action `investments.setNote`** (`packages/core/src/actions/investments/setNote.ts`): `transactions.setNote` only reaches `transactions`, so notes on buys/sells/dividends/fees needed their own action. The note lives on the `investment_transactions` row; the backend's investment sync doesn't overwrite `note` (it isn't in the upsert's update list), keep it that way.
