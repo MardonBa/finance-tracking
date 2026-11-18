@@ -206,7 +206,7 @@ export function ListTab({ value, figures, accounts, cardPayments, editing, setEd
           <ReviewAndConfirm
             action="recurring.remove"
             input={{ recurringItemId: removing.id, removed: true }}
-            confirmLabel="Remove"
+            confirmLabel="Remove" destructive
             onDone={() => setRemoving(null)}
             onCancel={() => setRemoving(null)}
           />

@@ -180,7 +180,7 @@ export function PhasesPanel({ phases, onPreview, firstYear }: PhasesPanelProps) 
       {editing?.mode === "remove" && (
         <Card title={`Remove ${editing.phase.name}?`}>
           <p className="rti-note">The chart shows the projection without it. Its years fall back to the previous assumptions.</p>
-          <ReviewAndConfirm action="trajectory.removeLifePhase" input={input} confirmLabel="Remove" onDone={close} onCancel={close} />
+          <ReviewAndConfirm action="trajectory.removeLifePhase" input={input} confirmLabel="Remove" destructive onDone={close} onCancel={close} />
         </Card>
       )}
       {form && (editing?.mode === "add" || editing?.mode === "edit") && (
