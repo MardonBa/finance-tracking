@@ -8,6 +8,13 @@ import type { ActionPreview, Figure } from "@ft/core";
 
 export const API_URL: string = import.meta.env.VITE_API_URL ?? "http://localhost:8787";
 
+/**
+ * In `npm run dev` only: the DEV_APP_TOKEN registered by `npm run reset:dev`,
+ * until Google sign-in (backend track) issues real tokens. Always undefined in
+ * production builds.
+ */
+export const DEV_APP_TOKEN: string | undefined = import.meta.env.DEV ? import.meta.env.VITE_DEV_APP_TOKEN || undefined : undefined;
+
 export class ApiError extends Error {
   readonly status: number;
   constructor(status: number, message: string) {
