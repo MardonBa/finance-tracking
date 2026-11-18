@@ -67,6 +67,8 @@ export const linkTokenGetSchema = z.object({
       z.object({
         link_session_id: z.string(),
         finished_at: nullishString,
+        // Present when the user left Link without finishing: the session is cancelled, nothing is saved (§3).
+        exit: z.object({ error: z.object({ error_code: z.string() }).nullish() }).nullish(),
         results: z
           .object({
             item_add_results: z
@@ -93,6 +95,8 @@ export const itemGetSchema = z.object({
     institution_name: nullishString,
     error: z.object({ error_code: z.string() }).nullable(),
     consent_expiration_time: z.string().nullable(),
+    // Products initialised on the item: sync only calls Investments/Liabilities when present (§4, §17).
+    products: z.array(z.string()).nullish(),
   }),
   status: z
     .object({
@@ -264,6 +268,7 @@ const sdkAgreement: true[] = [
   true satisfies Accepts<typeof accountSchema, Plaid.AccountBase>,
   true satisfies Accepts<typeof transactionSchema, Plaid.Transaction>,
   true satisfies Accepts<typeof linkTokenCreateSchema, Plaid.LinkTokenCreateResponse>,
+  true satisfies Accepts<typeof linkTokenGetSchema, Plaid.LinkTokenGetResponse>,
   true satisfies Accepts<typeof publicTokenExchangeSchema, Plaid.ItemPublicTokenExchangeResponse>,
   true satisfies Accepts<typeof itemGetSchema, Plaid.ItemGetResponse>,
   true satisfies Accepts<typeof accountsGetSchema, Plaid.AccountsGetResponse>,

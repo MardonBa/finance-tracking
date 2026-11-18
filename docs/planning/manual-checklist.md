@@ -12,3 +12,11 @@ Steps only you can do: real Touch ID, browser sign-in, real banks, production. E
 - [ ] Deep link: `tauri build`, then `open "financetracker://test"` → the app comes to the front (deep links don't register under `tauri dev`).
 - [ ] In the real app: ⌘W closes only the in-app window, ⌘` cycles windows, and drag/resize stay smooth with charts.
 - [ ] Look over the orange/pink shades at `#styleguide` in a dev build.
+
+## Bank connections, webhooks, backups (backend track)
+- [ ] Hosted Link in a browser (Sandbox): First Platypus with `user_good`/`pass_good`, then Platypus OAuth Bank, then cancel partway → nothing saved. Steps: `docs/planning/plaid-hosted-link-spike.md`.
+- [ ] Webhooks from Plaid: deploy the dev Worker, set `PUBLIC_API_URL` to its https URL, fire a Sandbox webhook → verified and synced (command in the spike doc).
+- [ ] Optionally add `ALLOWED_GOOGLE_SUB` to `.env` (email is already set).
+- [ ] Restore one backup into a fresh remote database (`docs/backup-restore.md`).
+- [ ] Production: set `PUBLIC_API_URL` and all production secrets (`PLAID_SECRET`, `TOKEN_ENC_KEY`, `BACKUP_ENC_KEY`, `APP_TOKEN_PEPPER`).
+- [ ] Real Chase: finish Chase's OAuth registration in the Plaid dashboard.

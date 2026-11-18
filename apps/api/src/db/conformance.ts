@@ -10,7 +10,7 @@ import type { TABLES } from "./tables.ts";
 type Equals<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
 type CoreRow<K extends DataKey> = CoreData[K][number];
 type DbRow<K extends DataKey> = (typeof TABLES)[K]["$inferSelect"];
-type Secret = "accessTokenEnc" | "transactionsCursor";
+type Secret = "accessTokenEnc" | "transactionsCursor" | "transactionsUpdateStatus" | "refreshAvailableAt";
 
 type SliceMatches<K extends DataKey> =
   Equals<Omit<DbRow<K>, Secret>, CoreRow<K>> extends true ? true : { mismatch: K; db: Omit<DbRow<K>, Secret>; core: CoreRow<K> };
