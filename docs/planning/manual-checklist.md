@@ -58,3 +58,11 @@ Steps only you can do: real Touch ID, browser sign-in, real banks, production. E
 - [ ] Each Overview element opens the right place: spending → Spending / its transactions, a transaction → Transactions, budget → Budgets, goal → Goals, net worth → Trajectory, an account → its details.
 - [ ] Add account → Manual account "Wallet" with $40 → add, edit, delete a transaction with a category and note; the balance and net worth follow.
 - [ ] Dock → Security: your credentials are listed; "Sign out this Mac" (confirm) sends you back to Google sign-in. Try "Revoke all" only when you mean it.
+
+## Production go-live (orchestrator, Phase 4)
+Production D1 `ft-prod` and R2 `ft-backups-prod` were created on 2026-11-18 and are in `apps/api/wrangler.toml`. The production migration was left for you (the tool permission check blocked it overnight).
+- [ ] Apply migrations: `cd apps/api && npx wrangler d1 migrations apply DB --remote --env production`.
+- [ ] Set production secrets with `npx wrangler secret put <NAME> --env production` (see `docs/shipping.md`): `PLAID_CLIENT_ID`, production `PLAID_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GEMINI_API_KEY`, `ALLOWED_GOOGLE_EMAIL`, and fresh `TOKEN_ENC_KEY`, `BACKUP_ENC_KEY`, `APP_TOKEN_PEPPER`. Keep a copy of `BACKUP_ENC_KEY` somewhere safe outside Cloudflare, or backups can't be restored.
+- [ ] Deploy: `cd apps/api && npx wrangler deploy --env production`, then check `https://ft-api.ft-api.workers.dev/health`.
+- [ ] Build the app against production: `cd apps/desktop && VITE_API_URL=https://ft-api.ft-api.workers.dev npm run tauri build`, then copy it to `/Applications`.
+- [ ] Connect a real bank, then save 2–3 anonymised production Plaid responses into `apps/api/test/fixtures/plaid/production/` (see its README) and run `npm test`.
