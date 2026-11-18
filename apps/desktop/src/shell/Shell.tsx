@@ -13,6 +13,7 @@ import { loadLayout, saveLayout } from "./wm/persist.ts";
 import { shortcutAction } from "./wm/shortcuts.ts";
 import { wmReducer, type WMAction, type WMState } from "./wm/state.ts";
 import "./shell.css";
+import { setWindowOpener } from "../data/drilldown.ts";
 
 type ShellAction = WMAction;
 
@@ -113,6 +114,11 @@ export function Shell({ token, onAddBanks }: ShellProps) {
     [],
   );
   const stableDispatch = useCallback((a: WMAction) => dispatch(a), []);
+  // Cross-window navigation (drill-downs, merchants, items) opens windows through the shell.
+  useEffect(() => {
+    setWindowOpener(actions.open);
+    return () => setWindowOpener(null);
+  }, [actions]);
 
   return (
     <AppTokenContext.Provider value={token}>

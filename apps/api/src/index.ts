@@ -26,7 +26,12 @@ app.use("*", async (c, next) => {
 
 /** The desktop webview: Vite in dev, Tauri's own scheme in the built app. */
 export const ALLOWED_ORIGINS = ["http://localhost:1420", "tauri://localhost", "http://tauri.localhost"];
-app.use("*", cors({ origin: ALLOWED_ORIGINS, allowHeaders: ["authorization", "content-type"], allowMethods: ["GET", "POST", "OPTIONS"], maxAge: 600 }));
+/** In dev only, any localhost port is allowed so parallel builds can each run their own Vite server. */
+const DEV_LOCALHOST = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/;
+app.use("*", (c, next) =>
+  cors({
+    origin: (origin) => (ALLOWED_ORIGINS.includes(origin) || (c.env.ENVIRONMENT === "dev" && DEV_LOCALHOST.test(origin)) ? origin : null),
+    allowHeaders: ["authorization", "content-type"], allowMethods: ["GET", "POST", "OPTIONS"], maxAge: 600 })(c, next));
 
 app.get("/health", (c) => c.json({ ok: true, env: c.env.ENVIRONMENT}));
 
