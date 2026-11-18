@@ -94,6 +94,13 @@ export function tools(): { tools: Tool[]; byName: Map<string, Tool> } {
   return cache;
 }
 
+/** Declarations for Gemini; a tool without parameters omits `parameters` (Gemini rejects an empty OBJECT). */
 export function declarations(): FunctionDeclaration[] {
-  return tools().tools.map((t) => t.declaration);
+  return tools().tools.map((t) => {
+    const p = t.declaration.parameters;
+    if (p && p.type === "OBJECT" && Object.keys(p.properties ?? {}).length === 0) {
+      return { name: t.declaration.name, description: t.declaration.description };
+    }
+    return t.declaration;
+  });
 }

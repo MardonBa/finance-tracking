@@ -5,7 +5,7 @@
  * figures it cited and exactly what was sent to Gemini.
  */
 import { ZodError, z } from "zod";
-import { ActionError, type ActionPreview, type Account } from "@ft/core";
+import { ActionError, queryRegistry, type ActionPreview, type Account } from "@ft/core";
 import type { AppEnv } from "../env.ts";
 import { getDb, loadSlices } from "../db/data.ts";
 import { NotFound, previewAction, runQuery, todayFor } from "../routes/registry.ts";
@@ -13,7 +13,7 @@ import { GeminiRateLimitError, geminiClient, type Content, type FunctionCall, ty
 import { accountLabels, forModel, scrubString, type AccountLabels } from "./privacy.ts";
 import { builtInPrompt, systemPrompt } from "./prompts.ts";
 import { checkBudget, cooldownFrom, cooldownUntil, limitsFor, recordRequest, setCooldown, type Blocked } from "./rateLimit.ts";
-import { declarations, tools, type Tool } from "./tools.ts";
+import { declarations, readToolName, tools, type Tool } from "./tools.ts";
 
 /** At most this many rounds of tool calls per turn (Worker CPU and free-tier requests). */
 export const MAX_TOOL_ROUNDS = 6;
@@ -31,6 +31,10 @@ export const chatRequestSchema = z.object({
     .refine((m) => m[m.length - 1]!.role === "user", "The last message must be from the user"),
   /** A built-in prompt id for the last message: its tool guidance is sent with it. */
   promptId: z.string().max(40).optional(),
+  /** "Explain this" (design.md §7): the figure the user clicked, sent with the last message. */
+  explain: z
+    .object({ query: z.string().max(80), params: z.unknown(), figureId: z.string().max(200).optional(), label: z.string().max(200).optional() })
+    .optional(),
   /** First citation number to use, so tags stay unique across the conversation. */
   firstTag: z.number().int().min(1).max(100_000).default(1),
 });
@@ -94,12 +98,40 @@ interface TurnState {
   proposals: Proposal[];
 }
 
+/** Gemini can't declare free-form objects, so they arrive as JSON strings (schema.ts): decode them. */
+export function decodeJsonStrings(v: unknown): unknown {
+  if (typeof v === "string") {
+    const t = v.trim();
+    if ((t.startsWith("{") && t.endsWith("}")) || (t.startsWith("[") && t.endsWith("]"))) {
+      try {
+        return JSON.parse(t);
+      } catch {
+        return v;
+      }
+    }
+    return v;
+  }
+  if (Array.isArray(v)) return v.map(decodeJsonStrings);
+  if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, decodeJsonStrings(x)]));
+  return v;
+}
+
+function parseArgs<T>(schema: z.ZodType<T>, args: unknown): T {
+  // Prefer the decoded form (an `unknown` field would otherwise accept the string as is);
+  // fall back to the raw args when decoding breaks a legitimately JSON-looking string.
+  const decoded = schema.safeParse(decodeJsonStrings(args));
+  if (decoded.success) return decoded.data;
+  const raw = schema.safeParse(args);
+  if (raw.success) return raw.data;
+  throw decoded.error;
+}
+
 async function runTool(state: TurnState, tool: Tool | undefined, call: FunctionCall): Promise<Record<string, unknown>> {
   if (!tool) return { error: `There is no tool named "${call.name}".` };
   const args = call.args ?? {};
   try {
     if (tool.kind === "read") {
-      const params = tool.query.params.parse(args);
+      const params = parseArgs(tool.query.params, args);
       const result = await runQuery(state.env, tool.query.name, params);
       const chart = `C${state.nextTag++}`;
       state.tags.set(chart, { kind: "chart", query: tool.query.name, params });
@@ -112,7 +144,7 @@ async function runTool(state: TurnState, tool: Tool | undefined, call: FunctionC
       }
       return { chart, figures, value: forModel(result.value, state.labels) };
     }
-    const input = tool.action.input.parse(args);
+    const input = parseArgs(tool.action.input, args);
     const preview = await previewAction(state.env, tool.action.name, input);
     const proposal: Proposal = { id: crypto.randomUUID(), action: tool.action.name, input, preview };
     state.proposals.push(proposal);
@@ -160,13 +192,30 @@ async function generate(env: AppEnv, request: GenerateRequest, nowMs: () => numb
   throw new RateLimited(lastBlock!);
 }
 
+/** Guidance for "Explain this": read the same query the chart used, then the transactions behind the figure. */
+export function explainGuidance(e: NonNullable<z.infer<typeof chatRequestSchema>["explain"]>): string {
+  const tool = queryRegistry.get(e.query) ? readToolName(e.query) : null;
+  const params = JSON.stringify(e.params ?? {});
+  if (!tool) return "The user clicked Explain on a chart; answer from the read tools.";
+  return [
+    `The user clicked "Explain" on ${e.label ? `"${e.label}"` : "a number"} in the app.`,
+    `First call ${tool} with exactly these params: ${params}.`,
+    e.figureId
+      ? `The number is its figure "${e.figureId}". To see the transactions behind it, call q__transactions__drillDown with {"query": "${e.query}", "params": ${params}, "figure": "${e.figureId}"}.`
+      : "",
+    "Explain in 2–4 sentences what drives this number and how it compares with usual, citing figures.",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
 export async function runChat(env: AppEnv, rawRequest: unknown, nowMs: () => number = Date.now): Promise<ChatResponse> {
   const req = chatRequestSchema.parse(rawRequest);
   const today = todayFor(env, nowMs());
   const { accounts } = await loadSlices(getDb(env.DB), ["accounts"]);
   const state: TurnState = { env, labels: accountLabels(accounts as Account[]), nextTag: req.firstTag, tags: new Map(), proposals: [] };
 
-  const guidance = builtInPrompt(req.promptId)?.guidance;
+  const guidance = builtInPrompt(req.promptId)?.guidance ?? (req.explain ? explainGuidance(req.explain) : undefined);
   const contents: Content[] = req.messages.map((m, i) => {
     const isLast = i === req.messages.length - 1;
     const text = isLast && guidance ? `${m.text}\n\n(How to answer this built-in question: ${guidance})` : m.text;

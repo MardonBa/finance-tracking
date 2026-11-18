@@ -127,7 +127,12 @@ function convert(node: Json, defs: Record<string, Json>, depth: number): GeminiS
     nullable = rawType.includes("null");
     rawType = rawType.find((t) => t !== "null") ?? "string";
   }
-  const type = TYPE_MAP[String(rawType)] ?? (node.properties ? "OBJECT" : node.items ? "ARRAY" : "STRING");
+  const type = TYPE_MAP[String(rawType)] ?? (node.properties ? "OBJECT" : node.items ? "ARRAY" : depth > 0 && rawType === undefined ? "OBJECT" : "STRING");
+  // Gemini rejects an OBJECT without properties (records, unknown values): take those as a JSON
+  // string instead; the harness decodes JSON strings before validating (harness.ts decodeJsonStrings).
+  if (type === "OBJECT" && depth > 0 && Object.keys((node.properties ?? {}) as object).length === 0) {
+    return { type: "STRING", ...(nullable ? { nullable } : {}), description: note([desc, 'A JSON object written as a string, e.g. {"key": "value"}.']) };
+  }
   const out: GeminiSchema = { type };
   const hints: string[] = [];
   if (nullable) out.nullable = true;

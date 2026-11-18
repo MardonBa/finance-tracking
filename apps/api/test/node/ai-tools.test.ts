@@ -8,7 +8,8 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { actionRegistry, queryRegistry } from "@ft/core";
-import { AI_EXCLUDED, MONEY_MOVING, READ_PREFIX, WRITE_PREFIX, excludedReason, tools } from "../../src/ai/tools.ts";
+import { AI_EXCLUDED, MONEY_MOVING, READ_PREFIX, WRITE_PREFIX, declarations, excludedReason, tools } from "../../src/ai/tools.ts";
+import type { GeminiSchema } from "../../src/ai/schema.ts";
 import { BUILT_IN_PROMPTS } from "../../src/ai/prompts.ts";
 import { createGeminiRestClient, GeminiRateLimitError, parseRetryDelay, type GenerateRequest } from "../../src/ai/gemini.ts";
 import { forModel, accountLabels } from "../../src/ai/privacy.ts";
@@ -36,10 +37,21 @@ describe("read tools = the query registry (§2 'The AI sees no more than the cha
     expect(new Set(all.map((t) => t.name)).size).toBe(all.length);
   });
 
-  it("declares every tool's parameters as an OBJECT schema", () => {
-    for (const t of all) {
-      expect(t.declaration.parameters.type, t.name).toBe("OBJECT");
-      expect(t.declaration.description.length).toBeGreaterThan(10);
+  it("declares parameters Gemini accepts: top-level OBJECT, no OBJECT without properties, string enums", () => {
+    const check = (s: GeminiSchema, path: string) => {
+      if (s.type === "OBJECT") {
+        expect(Object.keys(s.properties ?? {}).length, `${path} is an empty OBJECT`).toBeGreaterThan(0);
+        for (const [k, v] of Object.entries(s.properties!)) check(v, `${path}.${k}`);
+      }
+      if (s.items) check(s.items, `${path}[]`);
+      if (s.enum) for (const e of s.enum) expect(typeof e, path).toBe("string");
+    };
+    for (const d of declarations()) {
+      expect(d.description.length).toBeGreaterThan(10);
+      if (d.parameters) {
+        expect(d.parameters.type, d.name).toBe("OBJECT");
+        check(d.parameters, d.name);
+      }
     }
   });
 });

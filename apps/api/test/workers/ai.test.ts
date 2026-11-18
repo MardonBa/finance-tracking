@@ -425,3 +425,28 @@ describe("conversations aren't stored; the AI only runs when asked", () => {
     ]);
   });
 });
+
+describe('"Explain this" (design.md §7)', () => {
+  it("sends the clicked figure's query, params and figure id as guidance", async () => {
+    useGemini([text("ok")]);
+    await chat(
+      ask("Explain this: Spending · October", {
+        explain: { query: "spending.monthlySummary", params: { month: "2026-10", usualMonths: 3 }, figureId: "spending", label: "Spending · October" },
+      }),
+    );
+    const sentText = fake.requests[0]!.body.contents[0]!.parts[0]!.text!;
+    expect(sentText).toContain('q__spending__monthlySummary with exactly these params: {"month":"2026-10","usualMonths":3}');
+    expect(sentText).toContain('"figure": "spending"');
+  });
+
+  it("accepts free-form objects the model sends as JSON strings", async () => {
+    useGemini([
+      calls({ name: "q__transactions__drillDown", args: { query: "spending.byCategory", params: JSON.stringify({ ...OCT, level: "primary" }), figure: "total" } }),
+      text("ok"),
+    ]);
+    await chat(ask("What's behind total spending?"));
+    const res = lastToolResponses(fake.requests[1]!.body)[0] as Record<string, unknown>;
+    expect(res).not.toHaveProperty("error");
+    expect(res).toHaveProperty("value");
+  });
+});

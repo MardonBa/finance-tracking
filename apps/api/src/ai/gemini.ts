@@ -30,7 +30,7 @@ export interface Content {
 export interface FunctionDeclaration {
   name: string;
   description: string;
-  parameters: GeminiSchema;
+  parameters?: GeminiSchema;
 }
 
 export interface GenerateRequest {
