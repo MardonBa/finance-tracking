@@ -1,0 +1,252 @@
+/*
+ * Layout shared by the Recurring, Trajectory and Investments windows.
+ * Tokens only (no-hex.test.ts).
+ */
+.rti-window {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--surface-cream);
+  color: var(--text);
+  font-size: var(--text-sm);
+}
+.rti-window__top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) var(--space-3);
+}
+.rti-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+.rti-toolbar__spacer {
+  flex: 1;
+}
+.rti-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-2) var(--space-4) var(--space-5);
+}
+.rti-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.rti-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  align-items: flex-end;
+}
+.rti-chart {
+  height: 260px;
+  min-height: 200px;
+}
+.rti-chart--tall {
+  height: 320px;
+}
+.rti-chart--small {
+  height: 180px;
+}
+
+/* ------------------------------------------------------------ text */
+.rti-note {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  line-height: var(--line-normal);
+}
+.rti-hint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+.rti-error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  color: var(--status-danger);
+  font-size: var(--text-sm);
+}
+.rti-disclaimer {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--accent-blue);
+  background: var(--surface-cream-light);
+  color: var(--text);
+  font-size: var(--text-xs);
+}
+.rti-num {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.rti-num--neg {
+  color: var(--status-danger);
+}
+.rti-num--pos {
+  color: var(--status-ok);
+}
+
+/* ------------------------------------------------------------ badges */
+.rti-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  background: var(--surface-cream-light);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+  white-space: nowrap;
+}
+.rti-badge--estimate {
+  border-style: dashed;
+}
+.rti-badge--accent {
+  border-color: var(--accent-blue-soft);
+  background: var(--accent-blue-soft);
+  color: var(--accent-blue);
+}
+
+/* ------------------------------------------------------------ tables */
+.rti-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+.rti-table th,
+.rti-table td {
+  padding: var(--space-2) var(--space-2);
+  border-bottom: 1px solid var(--border-soft);
+  text-align: left;
+  vertical-align: middle;
+}
+.rti-table thead th {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+}
+.rti-table .is-num {
+  text-align: right;
+}
+.rti-table tbody tr:last-child td,
+.rti-table tbody tr:last-child th {
+  border-bottom: none;
+}
+.rti-table tfoot td,
+.rti-table tfoot th {
+  border-top: var(--border-width) solid var(--border);
+  font-weight: var(--weight-bold);
+}
+.rti-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent-blue);
+  font: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.rti-link:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
+/* ------------------------------------------------------------ banner */
+.rti-banner {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--status-danger-bg);
+  color: var(--text-strong);
+  box-shadow: var(--shadow-raised-sm);
+}
+.rti-banner__icon {
+  flex: none;
+  color: var(--status-danger);
+  margin-top: 2px;
+}
+.rti-banner__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.rti-banner__title {
+  margin: 0 0 var(--space-1);
+  font-weight: var(--weight-bold);
+}
+
+/* ------------------------------------------------------------ preview */
+.rti-review {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.rti-review__buttons {
+  display: flex;
+  gap: var(--space-3);
+}
+.rti-preview {
+  padding: var(--space-3);
+  border: 1px dashed var(--border-soft);
+  border-radius: var(--radius-md);
+  background: var(--surface-cream-light);
+}
+.rti-preview__summary {
+  margin: 0 0 var(--space-2);
+  font-weight: var(--weight-bold);
+  color: var(--text-strong);
+}
+.rti-preview__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-xs);
+}
+.rti-preview__table th,
+.rti-preview__table td {
+  padding: var(--space-1) var(--space-2);
+  text-align: left;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+/* ------------------------------------------------------------ forms */
+.rti-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--space-3);
+  align-items: end;
+}
+.rti-details > summary {
+  cursor: pointer;
+  color: var(--accent-blue);
+  font-size: var(--text-xs);
+}
+.rti-details > summary:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.rti-details ul {
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-4);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  line-height: var(--line-normal);
+}
